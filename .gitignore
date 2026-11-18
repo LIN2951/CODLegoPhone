@@ -1,0 +1,7 @@
+node_modules/
+cache/
+output/
+dist/
+*.bak
+.DS_Store
+Thumbs.db

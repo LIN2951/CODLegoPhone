@@ -1,0 +1,599 @@
+/*
+ * Lego 小手机 · 薰衣草液态玻璃按钮
+ *
+ * 作用域仅包含：
+ * 1) 首页「购物 / 世界书 / 主题 / 设置 / 手机 / 推特 / 微信 / 系统」入口；
+ * 2) 返回功能键；
+ * 3) 微信添加键、消息 / 发现 / 我、聊天设置键；
+ * 4) 聊天底栏的接收 / 表情 / 更多 / 发送键。
+ */
+
+:root {
+    --lego-glass-ink: #4f5068;
+    --lego-glass-ink-soft: #737487;
+    --lego-glass-blue: #8394b2;
+    --lego-glass-blue-deep: #667895;
+    --lego-glass-lavender: #aaa4bb;
+    --lego-glass-beige: #d8cec0;
+    --lego-glass-border: rgba(255, 255, 255, 0.74);
+    --lego-glass-highlight: rgba(255, 255, 255, 0.82);
+    --lego-glass-shadow: rgba(69, 72, 99, 0.14);
+    --lego-glass-focus: rgba(105, 124, 157, 0.42);
+}
+
+/* ========== 首页：八个点名入口 ========== */
+
+#home-screen .quick-functions > .function-item {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 18% 8%, rgba(255, 255, 255, 0.82) 0, rgba(255, 255, 255, 0) 48%),
+        linear-gradient(145deg, rgba(245, 246, 250, 0.68), rgba(221, 222, 234, 0.48));
+    border: 1px solid var(--lego-glass-border);
+    border-radius: 18px;
+    box-shadow:
+        inset 0 1px 0 var(--lego-glass-highlight),
+        0 8px 22px var(--lego-glass-shadow);
+    backdrop-filter: blur(18px) saturate(1.08);
+    -webkit-backdrop-filter: blur(18px) saturate(1.08);
+    transition: transform 180ms ease, background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+#home-screen .quick-functions > .function-item::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    inset: -45% 28% 48% -35%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(168, 180, 207, 0.34), rgba(168, 180, 207, 0));
+    pointer-events: none;
+}
+
+#home-screen .quick-functions > .function-item:nth-child(even)::before {
+    background: radial-gradient(circle, rgba(184, 174, 198, 0.30), rgba(184, 174, 198, 0));
+}
+
+#home-screen .quick-functions > .function-item:active {
+    transform: translateY(1px) scale(0.97);
+    background:
+        radial-gradient(circle at 18% 8%, rgba(255, 255, 255, 0.88) 0, rgba(255, 255, 255, 0) 48%),
+        linear-gradient(145deg, rgba(239, 242, 248, 0.78), rgba(211, 215, 229, 0.58));
+    box-shadow:
+        inset 0 1px 3px rgba(74, 77, 104, 0.13),
+        0 3px 10px rgba(69, 72, 99, 0.11);
+}
+
+#home-screen .function-icon {
+    overflow: hidden;
+    border-radius: 13px;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.78), rgba(226, 226, 236, 0.48));
+    border: 1px solid rgba(255, 255, 255, 0.78);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.86),
+        0 3px 9px rgba(76, 77, 102, 0.13);
+}
+
+#home-screen .function-icon img,
+#home-screen .nav-icon img {
+    filter: saturate(0.58) contrast(0.92) brightness(1.04);
+    transition: filter 180ms ease, transform 180ms ease;
+}
+
+#home-screen .function-name {
+    color: var(--lego-glass-ink);
+    font-weight: 650;
+    letter-spacing: 0.025em;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.64);
+}
+
+#home-screen > .bottom-nav {
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 14% -20%, rgba(177, 193, 219, 0.34), rgba(177, 193, 219, 0) 42%),
+        radial-gradient(circle at 86% 125%, rgba(190, 177, 201, 0.28), rgba(190, 177, 201, 0) 46%),
+        linear-gradient(145deg, rgba(245, 245, 248, 0.65), rgba(222, 221, 231, 0.48));
+    border: 1px solid rgba(255, 255, 255, 0.76);
+    border-radius: 20px;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.86),
+        0 10px 28px rgba(64, 68, 94, 0.15);
+    backdrop-filter: blur(20px) saturate(1.08);
+    -webkit-backdrop-filter: blur(20px) saturate(1.08);
+}
+
+#home-screen > .bottom-nav > .nav-item {
+    border: 1px solid transparent;
+    border-radius: 15px;
+    transition: transform 180ms ease, background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+#home-screen > .bottom-nav > .nav-item:active {
+    transform: translateY(1px) scale(0.96);
+    background: rgba(255, 255, 255, 0.42);
+    border-color: rgba(255, 255, 255, 0.62);
+    box-shadow: inset 0 1px 3px rgba(72, 74, 100, 0.10);
+}
+
+#home-screen .nav-icon {
+    overflow: hidden;
+    border-radius: 12px;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.78), rgba(220, 222, 233, 0.50));
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.84),
+        0 3px 9px rgba(72, 75, 101, 0.14);
+}
+
+#home-screen .nav-name {
+    color: #626377;
+    font-weight: 650;
+    letter-spacing: 0.02em;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.62);
+}
+
+#home-screen > .bottom-nav > .nav-item.nav-item--locked:active {
+    transform: none;
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+}
+
+/* ========== 全局返回键：统一为清晰的液态玻璃箭头 ========== */
+
+button[aria-label^='返回'] {
+    box-sizing: border-box;
+    min-width: 36px;
+    min-height: 36px;
+    padding: 0 !important;
+    overflow: hidden;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.76) !important;
+    border-radius: 13px !important;
+    background:
+        radial-gradient(circle at 26% 18%, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0) 48%),
+        linear-gradient(145deg, rgba(239, 241, 247, 0.76), rgba(211, 214, 226, 0.58)) !important;
+    color: transparent !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
+    text-shadow: none !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.88),
+        0 4px 13px rgba(66, 70, 96, 0.14) !important;
+    backdrop-filter: blur(12px) saturate(1.08);
+    -webkit-backdrop-filter: blur(12px) saturate(1.08);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease, filter 160ms ease;
+}
+
+button[aria-label^='返回'] > img,
+button[aria-label^='返回'] > svg {
+    display: none !important;
+}
+
+button[aria-label^='返回']::before {
+    content: '';
+    display: block;
+    width: 9px;
+    height: 9px;
+    border-left: 2px solid var(--lego-glass-ink);
+    border-bottom: 2px solid var(--lego-glass-ink);
+    border-radius: 1px;
+    transform: rotate(45deg) translate(1px, -1px);
+    transform-origin: center;
+}
+
+button[aria-label^='返回']:active {
+    filter: brightness(0.97);
+    background:
+        linear-gradient(145deg, rgba(224, 228, 238, 0.82), rgba(197, 202, 218, 0.67)) !important;
+    box-shadow:
+        inset 0 2px 4px rgba(65, 69, 94, 0.16),
+        0 2px 7px rgba(66, 70, 96, 0.10) !important;
+}
+
+button[aria-label^='返回']:focus-visible,
+#wechat-page .wechat-header-btn[aria-label='添加']:focus-visible,
+#chat-page .chat-header-btn[aria-label='聊天设置']:focus-visible,
+#chat-page .chat-function-btn:focus-visible {
+    outline: 2px solid var(--lego-glass-focus) !important;
+    outline-offset: 2px;
+}
+
+/* 朋友圈封面可能很亮或很暗，使用深灰紫玻璃保持箭头可见。 */
+.moments-toolbar-back[aria-label^='返回'] {
+    border-color: rgba(255, 255, 255, 0.48) !important;
+    background:
+        radial-gradient(circle at 24% 18%, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0) 50%),
+        linear-gradient(145deg, rgba(73, 76, 96, 0.58), rgba(89, 83, 107, 0.44)) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.28),
+        0 4px 13px rgba(24, 26, 39, 0.26) !important;
+}
+
+.moments-toolbar-back[aria-label^='返回']::before {
+    border-color: #f8f7fb;
+}
+
+.moments-toolbar-back[aria-label^='返回']:active {
+    background:
+        linear-gradient(145deg, rgba(62, 65, 84, 0.68), rgba(76, 70, 94, 0.55)) !important;
+}
+
+/* 好友手机与暗网页中由 JS 生成的文字返回键。 */
+.friend-app-mini-back,
+.friend-darkweb-mini-btn[data-fapp*='back'],
+.friend-darkweb-mini-btn[data-fapp='darkweb-sidebar-home'] {
+    min-height: 36px;
+    padding: 7px 13px !important;
+    border: 1px solid rgba(255, 255, 255, 0.72) !important;
+    border-radius: 14px !important;
+    background:
+        radial-gradient(circle at 24% 14%, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0) 48%),
+        linear-gradient(145deg, rgba(239, 241, 246, 0.76), rgba(214, 214, 225, 0.58)) !important;
+    color: var(--lego-glass-ink) !important;
+    font-weight: 650;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.84),
+        0 4px 12px rgba(67, 70, 94, 0.13) !important;
+    backdrop-filter: blur(12px) saturate(1.06);
+    -webkit-backdrop-filter: blur(12px) saturate(1.06);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease, filter 160ms ease;
+}
+
+.friend-app-mini-back:focus-visible,
+.friend-darkweb-mini-btn[data-fapp*='back']:focus-visible,
+.friend-darkweb-mini-btn[data-fapp='darkweb-sidebar-home']:focus-visible {
+    outline: 2px solid var(--lego-glass-focus) !important;
+    outline-offset: 2px;
+}
+
+.friend-app-mini-back:active,
+.friend-darkweb-mini-btn[data-fapp*='back']:active,
+.friend-darkweb-mini-btn[data-fapp='darkweb-sidebar-home']:active {
+    filter: brightness(0.97);
+    box-shadow:
+        inset 0 2px 4px rgba(65, 69, 94, 0.16),
+        0 2px 7px rgba(66, 70, 96, 0.10) !important;
+}
+
+/* ========== 微信顶部：添加按钮 ========== */
+
+#wechat-page .wechat-header-btn[aria-label='添加'] {
+    position: relative;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.76);
+    border-radius: 14px;
+    background:
+        radial-gradient(circle at 24% 16%, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0) 49%),
+        linear-gradient(145deg, rgba(233, 239, 247, 0.78), rgba(207, 211, 226, 0.58));
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.88),
+        0 4px 13px rgba(63, 69, 96, 0.14);
+    backdrop-filter: blur(12px) saturate(1.08);
+    -webkit-backdrop-filter: blur(12px) saturate(1.08);
+    transition: background 160ms ease, box-shadow 160ms ease, filter 160ms ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+#wechat-page .wechat-header-btn[aria-label='添加'] .wechat-header-img {
+    display: none;
+}
+
+#wechat-page .wechat-header-btn[aria-label='添加']::before,
+#wechat-page .wechat-header-btn[aria-label='添加']::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 15px;
+    height: 2px;
+    border-radius: 999px;
+    background: var(--lego-glass-ink);
+    transform: translate(-50%, -50%);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.48);
+}
+
+#wechat-page .wechat-header-btn[aria-label='添加']::after {
+    transform: translate(-50%, -50%) rotate(90deg);
+}
+
+#wechat-page .wechat-header-btn[aria-label='添加']:active {
+    filter: brightness(0.97);
+    box-shadow:
+        inset 0 2px 4px rgba(67, 70, 96, 0.15),
+        0 2px 7px rgba(63, 69, 96, 0.10);
+}
+
+/* ========== 微信底部：消息 / 发现 / 我 ========== */
+
+.wechat-bottom-nav {
+    gap: 5px;
+    padding: 7px 8px max(7px, env(safe-area-inset-bottom, 0px));
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 18% -32%, rgba(173, 192, 218, 0.30), rgba(173, 192, 218, 0) 44%),
+        radial-gradient(circle at 83% 132%, rgba(189, 178, 201, 0.27), rgba(189, 178, 201, 0) 48%),
+        linear-gradient(145deg, rgba(244, 244, 247, 0.70), rgba(220, 220, 229, 0.52));
+    border-top: 1px solid rgba(255, 255, 255, 0.76);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.78),
+        0 -7px 22px rgba(67, 70, 96, 0.11);
+    backdrop-filter: blur(18px) saturate(1.08);
+    -webkit-backdrop-filter: blur(18px) saturate(1.08);
+}
+
+.wechat-bottom-nav .wechat-nav-item {
+    min-width: 0;
+    min-height: 51px;
+    padding: 5px 4px;
+    border: 1px solid transparent;
+    border-radius: 16px;
+    color: var(--lego-glass-ink-soft);
+    transition: transform 170ms ease, color 170ms ease, background 170ms ease, border-color 170ms ease, box-shadow 170ms ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.wechat-bottom-nav .wechat-nav-item.active {
+    color: var(--lego-glass-blue-deep);
+    background:
+        radial-gradient(circle at 22% 0%, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0) 48%),
+        linear-gradient(145deg, rgba(229, 235, 244, 0.72), rgba(213, 211, 226, 0.58));
+    border-color: rgba(255, 255, 255, 0.74);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.84),
+        0 4px 13px rgba(69, 74, 102, 0.12);
+}
+
+.wechat-bottom-nav .wechat-nav-item:active {
+    transform: scale(0.96);
+}
+
+.wechat-bottom-nav .wechat-nav-icon {
+    width: 30px;
+    height: 30px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.68);
+    border-radius: 11px;
+    color: inherit;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.69), rgba(218, 218, 228, 0.43));
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.78),
+        0 2px 7px rgba(71, 73, 98, 0.10);
+}
+
+.wechat-bottom-nav .wechat-nav-img {
+    border-radius: 10px;
+    opacity: 0.79;
+    mix-blend-mode: multiply;
+    filter: grayscale(0.24) saturate(0.54) contrast(0.91) brightness(1.04);
+    transition: opacity 170ms ease, filter 170ms ease;
+}
+
+.wechat-bottom-nav .wechat-nav-item.active .wechat-nav-icon {
+    border-color: rgba(163, 178, 205, 0.58);
+    background: linear-gradient(145deg, rgba(239, 243, 249, 0.80), rgba(205, 211, 228, 0.60));
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.86),
+        0 3px 9px rgba(88, 101, 130, 0.16);
+}
+
+.wechat-bottom-nav .wechat-nav-item.active .wechat-nav-img {
+    opacity: 0.94;
+    filter: grayscale(0.14) saturate(0.66) contrast(0.94) brightness(1.02);
+}
+
+.wechat-bottom-nav .wechat-nav-text,
+.wechat-bottom-nav .wechat-nav-item.active .wechat-nav-text {
+    display: block;
+    margin-top: 2px;
+    color: currentColor;
+    font-size: 10px;
+    line-height: 1.1;
+    font-weight: 650;
+    letter-spacing: 0.04em;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.66);
+}
+
+/* ========== 微信聊天顶部：聊天设置按钮 ========== */
+
+#chat-page .chat-header-btn[aria-label='聊天设置'] {
+    position: relative;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.74);
+    border-radius: 14px;
+    color: var(--lego-glass-ink);
+    background:
+        radial-gradient(circle at 24% 16%, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0) 49%),
+        linear-gradient(145deg, rgba(238, 239, 245, 0.80), rgba(211, 211, 225, 0.61));
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.86),
+        0 4px 13px rgba(63, 67, 92, 0.14);
+    backdrop-filter: blur(12px) saturate(1.08);
+    -webkit-backdrop-filter: blur(12px) saturate(1.08);
+    transition: background 160ms ease, box-shadow 160ms ease, filter 160ms ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+#chat-page .chat-header-btn[aria-label='聊天设置'] .chat-header-img {
+    display: none;
+}
+
+#chat-page .chat-header-btn[aria-label='聊天设置']::before {
+    content: '';
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: -7px 0 0 currentColor, 7px 0 0 currentColor;
+}
+
+#chat-page .chat-header-btn[aria-label='聊天设置']:active {
+    filter: brightness(0.97);
+    box-shadow:
+        inset 0 2px 4px rgba(66, 69, 94, 0.15),
+        0 2px 7px rgba(63, 67, 92, 0.10);
+}
+
+/* ========== 微信聊天底部：接收 / 表情 / 更多 / 发送 ========== */
+
+#chat-page .chat-function-btn {
+    width: 38px;
+    height: 38px;
+    box-sizing: border-box;
+    border: 1px solid rgba(255, 255, 255, 0.76);
+    border-radius: 14px;
+    background-color: rgba(230, 231, 239, 0.74);
+    background-position: center, center;
+    background-repeat: no-repeat, no-repeat;
+    background-size: 100% 100%, cover;
+    background-blend-mode: multiply;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.88),
+        0 4px 13px rgba(62, 66, 91, 0.14);
+    backdrop-filter: blur(12px) saturate(1.06);
+    -webkit-backdrop-filter: blur(12px) saturate(1.06);
+    transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease, filter 160ms ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+#chat-page .receive-btn {
+    background-image:
+        linear-gradient(145deg, rgba(225, 234, 245, 0.90), rgba(203, 211, 229, 0.78)),
+        url('icons/receive.png');
+}
+
+#chat-page .emoji-btn {
+    background-image:
+        linear-gradient(145deg, rgba(241, 237, 232, 0.92), rgba(220, 213, 222, 0.78)),
+        url('icons/emoji.png');
+}
+
+#chat-page .more-btn {
+    background-image:
+        linear-gradient(145deg, rgba(235, 233, 241, 0.92), rgba(209, 206, 222, 0.80)),
+        url('icons/more.png');
+}
+
+#chat-page .send-btn {
+    border-color: rgba(158, 174, 202, 0.62);
+    background-image:
+        linear-gradient(145deg, rgba(218, 230, 242, 0.92), rgba(190, 202, 225, 0.82)),
+        url('icons/send.png');
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.84),
+        0 4px 14px rgba(89, 104, 137, 0.19);
+}
+
+#chat-page .chat-function-btn:active {
+    transform: scale(0.94);
+    filter: brightness(0.96);
+    box-shadow:
+        inset 0 2px 4px rgba(66, 69, 94, 0.18),
+        0 2px 7px rgba(62, 66, 91, 0.10);
+}
+
+#chat-page .receive-btn.loading {
+    background-image: linear-gradient(145deg, rgba(225, 234, 245, 0.94), rgba(203, 211, 229, 0.84));
+    background-blend-mode: normal;
+}
+
+#chat-page .receive-btn.loading::before {
+    width: 19px;
+    height: 19px;
+    border-width: 2px;
+    border-color: rgba(83, 91, 117, 0.24);
+    border-top-color: var(--lego-glass-blue-deep);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    #home-screen .quick-functions > .function-item:not(:active):hover {
+        transform: translateY(-2px);
+        border-color: rgba(255, 255, 255, 0.88);
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.92),
+            0 11px 26px rgba(66, 70, 96, 0.17);
+    }
+
+    #home-screen > .bottom-nav > .nav-item:not(.nav-item--locked):not(:active):hover {
+        transform: translateY(-2px);
+        background: rgba(255, 255, 255, 0.36);
+        border-color: rgba(255, 255, 255, 0.62);
+        box-shadow: 0 4px 12px rgba(70, 73, 98, 0.10);
+    }
+
+    button[aria-label^='返回']:not(:active):hover,
+    #wechat-page .wechat-header-btn[aria-label='添加']:not(:active):hover,
+    #chat-page .chat-header-btn[aria-label='聊天设置']:not(:active):hover {
+        border-color: rgba(255, 255, 255, 0.92) !important;
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.94),
+            0 6px 16px rgba(65, 69, 95, 0.18) !important;
+    }
+
+    .wechat-bottom-nav .wechat-nav-item:not(.active):not(:active):hover {
+        color: #626477;
+        background: rgba(255, 255, 255, 0.28);
+        border-color: rgba(255, 255, 255, 0.48);
+    }
+
+    #chat-page .chat-function-btn:not(:active):hover {
+        transform: translateY(-2px);
+        border-color: rgba(255, 255, 255, 0.94);
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.94),
+            0 7px 17px rgba(65, 69, 95, 0.19);
+    }
+
+    .friend-app-mini-back:not(:active):hover,
+    .friend-darkweb-mini-btn[data-fapp*='back']:not(:active):hover,
+    .friend-darkweb-mini-btn[data-fapp='darkweb-sidebar-home']:not(:active):hover {
+        border-color: rgba(255, 255, 255, 0.90) !important;
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.92),
+            0 6px 16px rgba(65, 69, 95, 0.17) !important;
+    }
+}
+
+@media (max-width: 360px) {
+    #chat-page .chat-function-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 12px;
+    }
+
+    .wechat-bottom-nav {
+        gap: 3px;
+        padding-left: 6px;
+        padding-right: 6px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #home-screen .quick-functions > .function-item,
+    #home-screen > .bottom-nav > .nav-item,
+    button[aria-label^='返回'],
+    .friend-app-mini-back,
+    .friend-darkweb-mini-btn[data-fapp*='back'],
+    .friend-darkweb-mini-btn[data-fapp='darkweb-sidebar-home'],
+    #wechat-page .wechat-header-btn[aria-label='添加'],
+    .wechat-bottom-nav .wechat-nav-item,
+    #chat-page .chat-header-btn[aria-label='聊天设置'],
+    #chat-page .chat-function-btn {
+        transition: none !important;
+    }
+}

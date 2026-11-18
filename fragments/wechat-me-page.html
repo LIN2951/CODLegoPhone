@@ -1,0 +1,398 @@
+        <!-- 微信我页面 -->
+        <div id="wechat-me-page" class="page">
+            <!-- 状态栏 -->
+            <div class="status-bar">
+                <div class="status-left current-time">02:33</div>
+                <div class="status-right">
+                    <span class="status-icon" aria-label="网络信号">
+                        <svg class="status-icon-svg status-signal-svg" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M3 18h2v3H3v-3Zm4-4h2v7H7v-7Zm4-4h2v11h-2V10Zm4-4h2v15h-2V6Zm4-3h2v18h-2V3Z" fill="currentColor" opacity=".9"/>
+                        </svg>
+                    </span>
+                    <span class="status-icon" aria-label="电池电量">
+                        <svg class="status-icon-svg status-battery-svg" viewBox="0 0 28 14" aria-hidden="true">
+                            <rect x="1" y="1" width="23" height="12" rx="3" ry="3" stroke="currentColor" stroke-width="1.5" fill="none" opacity=".95"/>
+                            <rect x="25" y="4" width="2" height="6" rx="1" fill="currentColor" opacity=".95"/>
+                            <rect class="status-battery-level" x="3.4" y="3.4" width="15.8" height="7.2" rx="2" fill="currentColor" opacity=".85"/>
+                        </svg>
+                    </span>
+                </div>
+            </div>
+
+            <!-- 微信我页面头部 -->
+            <div class="wechat-me-header">
+                <h1>我</h1>
+            </div>
+
+            <!-- 内容区域 -->
+            <div class="wechat-me-content">
+                <!-- 个人信息区域 -->
+                <div class="wechat-me-profile">
+                    <button type="button" class="wechat-me-profile-content" onclick="openEditProfileModal()" aria-label="编辑个人资料">
+                        <span class="wechat-me-avatar">
+                            <span class="wechat-me-avatar-placeholder"></span>
+                        </span>
+                        <span class="wechat-me-info">
+                            <span class="wechat-me-name">可点击编辑</span>
+                            <span class="wechat-me-id">微信号：wx_id_...</span>
+                        </span>
+                        <svg class="wechat-row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+                    </button>
+                </div>
+
+                <!-- 编辑个人资料模态框 -->
+                <div class="modal" id="edit-profile-modal">
+                    <div class="modal-content edit-profile-modal">
+                        <div class="edit-profile-header">
+                            <h3>编辑个人资料</h3>
+                            <button class="modal-close" onclick="closeEditProfileModal()">&times;</button>
+                        </div>
+                        <div class="edit-profile-body">
+                            <div class="avatar-upload-section">
+                                <div class="avatar-upload-container">
+                                    <input type="file" id="avatar-upload" class="avatar-file-input" accept="image/jpeg,image/jpg,image/png,image/gif,.jpg,.jpeg,.png,.gif" onchange="handleProfileAvatarUpload(event)">
+                                    <div class="avatar-upload-preview" id="avatar-preview">
+                                        <img src="" alt="头像" id="avatar-preview-img">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="nickname-edit-section">
+                                <label for="nickname-input">修改昵称</label>
+                                <input type="text" id="nickname-input" class="nickname-input" placeholder="请输入昵称">
+                            </div>
+
+                            <div class="nickname-edit-section">
+                                <label for="wechat-id-input">修改微信号</label>
+                                <input type="text" id="wechat-id-input" class="nickname-input" placeholder="请输入微信号" maxlength="32" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="edit-profile-footer">
+                            <button type="button" class="cancel-btn" onclick="closeEditProfileModal()">取消</button>
+                            <button type="button" class="save-btn" onclick="saveProfile()">保存</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 我的人设模态框 -->
+                <div class="modal" id="my-profile-modal">
+                    <div class="modal-content my-profile-modal">
+                        <div class="my-profile-header">
+                            <h3>我的人设</h3>
+                            <button class="modal-close" onclick="closeMyProfileModal()">&times;</button>
+                        </div>
+                        <div class="my-profile-body">
+                            <div class="my-profile-avatar-section">
+                                <div class="my-profile-avatar-container">
+                                    <input type="file" id="my-profile-avatar-upload" class="my-profile-avatar-file-input" accept="image/jpeg,image/jpg,image/png,image/gif,.jpg,.jpeg,.png,.gif" onchange="handleMyProfileAvatarUpload(event)">
+                                    <div class="my-profile-avatar-preview" id="my-profile-avatar-preview">
+                                        <img src="" alt="人设头像" id="my-profile-avatar-preview-img" style="display: none;">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="my-profile-edit-section">
+                                <label for="my-profile-nickname-input">编辑昵称</label>
+                                <input type="text" id="my-profile-nickname-input" class="my-profile-input" placeholder="请输入昵称">
+                            </div>
+
+                            <div class="my-profile-edit-section">
+                                <label for="my-profile-identity-input">编辑身份</label>
+                                <div class="resizeable-textarea-container">
+                                    <textarea id="my-profile-identity-input" class="resizeable-textarea" placeholder="请输入身份"></textarea>
+                                    <div class="resize-handle"></div>
+                                </div>
+                            </div>
+
+                            <div class="my-profile-edit-section">
+                                <label for="my-profile-patpat-input">拍一拍后缀</label>
+                                <input type="text" id="my-profile-patpat-input" class="my-profile-input" placeholder="例如：的头、的肩膀">
+                            </div>
+                        </div>
+                        <div class="my-profile-footer">
+                            <button class="cancel-btn" onclick="closeMyProfileModal()">取消</button>
+                            <button class="save-btn" onclick="saveMyProfile()">保存</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 收藏界面（全页） -->
+                <div class="favorites-page" id="favorites-page">
+                    <div class="favorites-page-header">
+                        <button class="favorites-back-btn" onclick="closeFavoritesPage()" aria-label="返回" title="返回">
+                            <img src="back-icon.jpg" alt="" class="chat-back-icon" aria-hidden="true">
+                        </button>
+                        <h2 class="favorites-page-title">收藏</h2>
+                    </div>
+                    <div class="favorites-page-body">
+                        <div class="favorites-tabs">
+                            <span class="favorites-tab active" data-tab="all" onclick="switchFavoritesTab('all')">全部</span>
+                            <span class="favorites-tab" data-tab="chat" onclick="switchFavoritesTab('chat')">聊天</span>
+                            <span class="favorites-tab" data-tab="moments" onclick="switchFavoritesTab('moments')">朋友圈</span>
+                        </div>
+                        <div class="favorites-list" id="favorites-list"></div>
+                        <div class="favorites-empty" id="favorites-empty" style="display:none;">
+                            <div class="favorites-empty-text">暂无收藏内容</div>
+                            <div class="favorites-empty-hint">聊天：长按消息气泡 → 多选 → 收藏</div>
+                            <div class="favorites-empty-hint">朋友圈：浏览动态 → 点击收藏</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 钱包界面 -->
+                <div class="wallet-page" id="wallet-page">
+                    <div class="wallet-page-header">
+                        <button class="wallet-back-btn" onclick="closeWalletPage()" aria-label="返回" title="返回">
+                            <img src="back-icon.jpg" alt="" class="chat-back-icon" aria-hidden="true">
+                        </button>
+                        <h2 class="wallet-page-title">钱包</h2>
+                    </div>
+                    <div class="wallet-page-body">
+                        <div class="wallet-balance-card">
+                            <div class="wallet-balance-icon">✓</div>
+                            <div class="wallet-balance-label">我的余额</div>
+                            <div class="wallet-balance-amount" id="wallet-balance-display">¥ 52,000.00</div>
+                        </div>
+                        <div class="wallet-menu-card">
+                            <div class="wallet-menu-item" onclick="walletPaymentPassword()">
+                                <span class="wallet-menu-icon">🔒</span>
+                                <span class="wallet-menu-name">支付密码</span>
+                                <span class="wallet-menu-value" id="wallet-payment-password-status">未设置</span>
+                                <span class="wallet-menu-arrow">›</span>
+                            </div>
+                            <div class="wallet-menu-item">
+                                <span class="wallet-menu-icon">🛡</span>
+                                <span class="wallet-menu-name">免密支付</span>
+                                <label class="wallet-menu-toggle">
+                                    <input type="checkbox" id="wallet-no-password-toggle">
+                                    <span class="wallet-toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="wallet-menu-item" onclick="walletRecharge()">
+                                <span class="wallet-menu-icon">💳</span>
+                                <span class="wallet-menu-name">充值</span>
+                                <span class="wallet-menu-arrow">›</span>
+                            </div>
+                            <div class="wallet-menu-item" onclick="walletWithdraw()">
+                                <span class="wallet-menu-icon">🪙</span>
+                                <span class="wallet-menu-name">提现</span>
+                                <span class="wallet-menu-arrow">›</span>
+                            </div>
+                            <div class="wallet-menu-item" onclick="walletFamilyCard()">
+                                <span class="wallet-menu-icon">❤</span>
+                                <span class="wallet-menu-name">亲属卡</span>
+                                <span class="wallet-menu-arrow">›</span>
+                            </div>
+                            <div class="wallet-menu-item" onclick="walletBills()">
+                                <span class="wallet-menu-icon">📋</span>
+                                <span class="wallet-menu-name">账单</span>
+                                <span class="wallet-menu-arrow">›</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 微信设置页片段挂载点 -->
+                <div id="wechat-settings-page-fragment-anchor"></div>
+
+                <!-- 账单界面 -->
+                <div class="wallet-bills-page" id="wallet-bills-page">
+                    <div class="wallet-bills-header">
+                        <button class="wallet-bills-back-btn" onclick="closeWalletBillsPage()" aria-label="返回" title="返回">
+                            <img src="back-icon.jpg" alt="" class="chat-back-icon" aria-hidden="true">
+                        </button>
+                        <h2 class="wallet-bills-title">账单</h2>
+                    </div>
+                    <div class="wallet-bills-summary">
+                        <div class="wallet-bills-summary-card income">
+                            <div class="wallet-bills-summary-label">收入</div>
+                            <div class="wallet-bills-summary-amount" id="wallet-bills-income">¥0.00</div>
+                        </div>
+                        <div class="wallet-bills-summary-card expense">
+                            <div class="wallet-bills-summary-label">支出</div>
+                            <div class="wallet-bills-summary-amount" id="wallet-bills-expense">¥0.00</div>
+                        </div>
+                    </div>
+                    <div class="wallet-bills-list" id="wallet-bills-list"></div>
+                    <div class="wallet-bills-empty" id="wallet-bills-empty" style="display:none;">
+                        <div class="wallet-bills-empty-text">暂无账单记录</div>
+                        <div class="wallet-bills-empty-hint">红包、转账、购物和爱的外卖记录会显示在这里</div>
+                    </div>
+                </div>
+
+                <!-- 亲属卡界面 -->
+                <div class="kinship-page" id="kinship-page">
+                    <div class="kinship-page-header">
+                        <button class="kinship-back-btn" onclick="closeKinshipPage()" aria-label="返回" title="返回">
+                            <img src="back-icon.jpg" alt="" class="chat-back-icon" aria-hidden="true">
+                        </button>
+                        <h2 class="kinship-page-title">亲属卡</h2>
+                    </div>
+                    <div class="kinship-page-body">
+                        <div class="kinship-tabs">
+                            <span class="kinship-tab active" data-tab="received" onclick="switchKinshipTab('received')">我收到的</span>
+                            <span class="kinship-tab" data-tab="sent" onclick="switchKinshipTab('sent')">我送出的</span>
+                        </div>
+                        <div class="kinship-received-section" id="kinship-received-section">
+                            <button type="button" class="kinship-give-btn" onclick="openAddReceivedKinshipModal()">领取亲属卡</button>
+                            <div class="kinship-card-list" id="kinship-received-list"></div>
+                            <div class="kinship-empty" id="kinship-received-empty">
+                                <div class="kinship-empty-text">暂无收到的亲属卡</div>
+                                <div class="kinship-empty-hint">好友赠送的亲属卡将在此展示</div>
+                            </div>
+                        </div>
+                        <div class="kinship-sent-section" id="kinship-sent-section" style="display:none;">
+                            <button type="button" class="kinship-give-btn" onclick="openGiveKinshipCardModal()">赠送亲属卡</button>
+                            <div class="kinship-card-list" id="kinship-sent-list"></div>
+                            <div class="kinship-empty" id="kinship-sent-empty">
+                                <div class="kinship-empty-text">暂无送出的亲属卡</div>
+                                <div class="kinship-empty-hint">点击上方按钮赠送亲属卡给好友</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal wallet-modal" id="give-kinship-card-modal">
+                    <div class="modal-content wallet-modal-content kinship-modal-content">
+                        <div class="wallet-modal-header">
+                            <h3>赠送亲属卡</h3>
+                        </div>
+                        <div class="wallet-modal-body">
+                            <p class="wallet-modal-hint">选择好友</p>
+                            <div class="kinship-friend-list" id="give-kinship-friend-list"></div>
+                            <p class="wallet-modal-hint" style="margin-top:16px;">设置月限额（元）</p>
+                            <input type="number" id="give-kinship-limit-input" class="wallet-password-input wallet-amount-input" placeholder="请输入限额" min="1" step="1" inputmode="numeric">
+                            <p class="wallet-modal-error" id="give-kinship-error"></p>
+                        </div>
+                        <div class="wallet-modal-footer">
+                            <button type="button" class="wallet-modal-btn cancel" onclick="closeGiveKinshipCardModal()">取消</button>
+                            <button type="button" class="wallet-modal-btn confirm" onclick="confirmGiveKinshipCard()">确定</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal wallet-modal" id="add-received-kinship-modal">
+                    <div class="modal-content wallet-modal-content kinship-modal-content">
+                        <div class="wallet-modal-header">
+                            <h3>领取亲属卡</h3>
+                        </div>
+                        <div class="wallet-modal-body">
+                            <p class="wallet-modal-hint">选择赠送好友</p>
+                            <div class="kinship-friend-list" id="add-received-kinship-friend-list"></div>
+                            <p class="wallet-modal-hint" style="margin-top:16px;">亲属卡额度（元）</p>
+                            <input type="number" id="add-received-kinship-amount-input" class="wallet-password-input wallet-amount-input" placeholder="请输入额度" min="1" step="0.01" inputmode="decimal">
+                            <p class="wallet-modal-error" id="add-received-kinship-error"></p>
+                        </div>
+                        <div class="wallet-modal-footer">
+                            <button type="button" class="wallet-modal-btn cancel" onclick="closeAddReceivedKinshipModal()">取消</button>
+                            <button type="button" class="wallet-modal-btn confirm" onclick="confirmAddReceivedKinship()">领取</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal wallet-modal" id="payment-method-modal">
+                    <div class="modal-content wallet-modal-content kinship-modal-content">
+                        <div class="wallet-modal-header">
+                            <h3>选择支付方式</h3>
+                        </div>
+                        <div class="wallet-modal-body">
+                            <p class="wallet-modal-hint" id="payment-method-hint">请选择支付方式</p>
+                            <div class="payment-method-list" id="payment-method-list"></div>
+                        </div>
+                        <div class="wallet-modal-footer">
+                            <button type="button" class="wallet-modal-btn cancel" onclick="closePaymentMethodModal()">取消</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal wallet-modal" id="set-payment-password-modal">
+                    <div class="modal-content wallet-modal-content">
+                        <div class="wallet-modal-header">
+                            <h3>设置支付密码</h3>
+                        </div>
+                        <div class="wallet-modal-body">
+                            <p class="wallet-modal-hint">请设置六位数字支付密码</p>
+                            <input type="password" id="payment-password-input" class="wallet-password-input" placeholder="请输入6位数字密码" maxlength="6" inputmode="numeric" pattern="[0-9]*" autocomplete="off" oninput="this.value=this.value.replace(/\D/g,'').slice(0,6)">
+                            <p class="wallet-modal-error" id="payment-password-error"></p>
+                        </div>
+                        <div class="wallet-modal-footer">
+                            <button type="button" class="wallet-modal-btn cancel" onclick="closeSetPaymentPasswordModal()">取消</button>
+                            <button type="button" class="wallet-modal-btn confirm" onclick="confirmSetPaymentPassword()">确定</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal wallet-modal" id="recharge-amount-modal">
+                    <div class="modal-content wallet-modal-content">
+                        <div class="wallet-modal-header">
+                            <h3>充值</h3>
+                        </div>
+                        <div class="wallet-modal-body">
+                            <p class="wallet-modal-hint">请输入充值金额</p>
+                            <input type="number" id="recharge-amount-input" class="wallet-password-input wallet-amount-input" placeholder="金额" min="0" step="0.01" inputmode="decimal">
+                            <p class="wallet-modal-error" id="recharge-amount-error"></p>
+                        </div>
+                        <div class="wallet-modal-footer">
+                            <button type="button" class="wallet-modal-btn cancel" onclick="closeRechargeModal()">取消</button>
+                            <button type="button" class="wallet-modal-btn confirm" onclick="confirmRechargeAmount()">确定</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal wallet-modal" id="withdraw-amount-modal">
+                    <div class="modal-content wallet-modal-content">
+                        <div class="wallet-modal-header">
+                            <h3>提现</h3>
+                        </div>
+                        <div class="wallet-modal-body">
+                            <p class="wallet-modal-hint">请输入提现金额</p>
+                            <input type="number" id="withdraw-amount-input" class="wallet-password-input wallet-amount-input" placeholder="金额" min="0" step="0.01" inputmode="decimal">
+                            <p class="wallet-modal-hint" style="margin-top:8px;font-size:12px;">当前余额 ¥<span id="withdraw-balance-display">0.00</span></p>
+                            <p class="wallet-modal-error" id="withdraw-amount-error"></p>
+                        </div>
+                        <div class="wallet-modal-footer">
+                            <button type="button" class="wallet-modal-btn cancel" onclick="closeWithdrawModal()">取消</button>
+                            <button type="button" class="wallet-modal-btn confirm" onclick="confirmWithdrawAmount()">确定</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="wechat-me-functions">
+                    <button type="button" class="wechat-me-function-item" onclick="showWallet()">
+                        <span class="wechat-me-function-icon wechat-function-icon--wallet"><svg class="wechat-line-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 11.5c0 4.4-3.8 8-8.5 8a10 10 0 0 1-3-.5L4 21l1.2-4.3A7.6 7.6 0 0 1 3.5 12c0-4.4 3.8-8 8.5-8 3.2 0 6.1 1.7 7.5 4.1"/><path d="m7.5 10.5 3.5 3 10-8"/></svg></span>
+                        <span class="wechat-me-function-name">钱包</span>
+                        <svg class="wechat-row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+                    </button>
+                    <button type="button" class="wechat-me-function-item wechat-row-group-start" onclick="showFavorites()">
+                        <span class="wechat-me-function-icon wechat-function-icon--favorites"><svg class="wechat-line-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 2 8.5 5v10L12 22l-8.5-5V7L12 2Z"/><path d="m3.5 7 8.5 5 8.5-5M12 12v10"/></svg></span>
+                        <span class="wechat-me-function-name">收藏</span>
+                        <svg class="wechat-row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+                    </button>
+                    <button type="button" class="wechat-me-function-item" onclick="showMyProfile()">
+                        <span class="wechat-me-function-icon wechat-function-icon--profile"><svg class="wechat-line-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2H4Z"/></svg></span>
+                        <span class="wechat-me-function-name">我的人设</span>
+                        <svg class="wechat-row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+                    </button>
+                    <button type="button" class="wechat-me-function-item wechat-row-group-start" onclick="showSettings()">
+                        <span class="wechat-me-function-icon wechat-function-icon--settings"><svg class="wechat-line-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10 2-.8 2.6-2.5 1-2.4-.9-2 3.5 1.7 2v2.7l-1.7 1.9 2 3.5 2.4-.9 2.5 1L10 22h4l.8-2.6 2.5-1 2.4.9 2-3.5-1.7-1.9v-2.7l1.7-2-2-3.5-2.4.9-2.5-1L14 2h-4Z"/><circle cx="12" cy="12" r="3.5"/></svg></span>
+                        <span class="wechat-me-function-name">设置</span>
+                        <svg class="wechat-row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <nav class="wechat-bottom-nav" aria-label="微信导航">
+                <button type="button" class="wechat-nav-item" data-wechat-tab="messages" onclick="showWechatMessages()">
+                    <span class="wechat-nav-icon"><svg class="wechat-nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="wechat-nav-outline" d="M21 10.8c0 4.3-4 7.8-9 7.8-1.1 0-2.2-.2-3.2-.5L4 20l1.1-4.1A7.2 7.2 0 0 1 3 10.8C3 6.5 7 3 12 3s9 3.5 9 7.8Z"/><path class="wechat-nav-fill" fill="currentColor" stroke="none" d="M12 2C6.5 2 2 5.9 2 10.8c0 2.1.9 4.2 2.5 5.7L3.2 21l5.5-2c1.1.3 2.2.5 3.3.5 5.5 0 10-3.9 10-8.7S17.5 2 12 2Z"/></svg></span>
+                    <span class="wechat-nav-text">微信</span>
+                </button>
+                <button type="button" class="wechat-nav-item" data-wechat-tab="discover" onclick="showWechatDiscover()">
+                    <span class="wechat-nav-icon"><svg class="wechat-nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g class="wechat-nav-outline"><circle cx="12" cy="12" r="9"/><path d="m16.4 7.6-2.8 6-6 2.8 2.8-6 6-2.8Z"/></g><g class="wechat-nav-fill" fill="currentColor" stroke="none"><path fill-rule="evenodd" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm5 5-3.2 6.8L7 17l3.2-6.8L17 7Z"/></g></svg></span>
+                    <span class="wechat-nav-text">发现</span>
+                </button>
+                <button type="button" class="wechat-nav-item active" data-wechat-tab="me" aria-current="page" onclick="showWechatMe()">
+                    <span class="wechat-nav-icon"><svg class="wechat-nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="wechat-nav-outline" d="M12 3c-2.6 0-4 2.2-4 5 0 2.2.8 4.1 2.1 5.2-.3 1.5-1.9 2.2-4 3.4C4.5 17.4 4 18.4 4 20h16c0-1.6-.5-2.6-2.1-3.4-2.1-1.2-3.7-1.9-4-3.4C15.2 12.1 16 10.2 16 8c0-2.8-1.4-5-4-5Z"/><path class="wechat-nav-fill" fill="currentColor" stroke="none" d="M12 2c-2.8 0-4.5 2.3-4.5 5.7 0 2 .7 3.8 1.9 4.9-.3 1.2-1.6 1.8-3.8 3-2.1 1.1-3.1 2.5-3.1 4.4v1h19v-1c0-1.9-1-3.3-3.1-4.4-2.2-1.2-3.5-1.8-3.8-3 1.2-1.1 1.9-2.9 1.9-4.9C16.5 4.3 14.8 2 12 2Z"/></svg></span>
+                    <span class="wechat-nav-text">我</span>
+                </button>
+            </nav>
+        </div>

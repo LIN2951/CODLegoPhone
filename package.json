@@ -1,0 +1,18 @@
+{
+  "name": "lego-miniphone",
+  "version": "1.2.0",
+  "description": "Lego小手机",
+  "scripts": {
+    "start": "node server.js",
+    "create-icon": "node create-lego-icon.js",
+    "build:html": "node scripts/inline-html-fragments.js",
+    "build:html:check": "node scripts/inline-html-fragments.js --check",
+    "test:music-playlist-upgrade": "node scripts/test-music-playlist-upgrade.js",
+    "test:api-models": "node --test scripts/test-api-models.js",
+    "diagnose:api": "node scripts/diagnose-api.js",
+    "test:proactive-message": "node --test scripts/test-proactive-message.js scripts/test-proactive-render.js"
+  },
+  "dependencies": {
+    "sharp": "^0.33.0"
+  }
+}

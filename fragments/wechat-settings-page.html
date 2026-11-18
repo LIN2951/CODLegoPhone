@@ -1,0 +1,77 @@
+                <!-- 微信-设置（外观：全局背景 / 气泡 CSS / 全局字体） -->
+                <div class="wechat-settings-page" id="wechat-settings-page">
+                    <div class="wechat-settings-header">
+                        <button type="button" class="wechat-settings-back" onclick="closeWechatSettingsPage()" aria-label="返回" title="返回">
+                            <img src="back-icon.jpg" alt="" class="chat-back-icon" aria-hidden="true">
+                        </button>
+                        <h2 class="wechat-settings-title">设置</h2>
+                    </div>
+                    <div class="wechat-settings-body">
+                        <p class="wechat-settings-intro">以下设置仅作用于微信模块；聊天对话页仍使用各好友的聊天背景，不受影响。</p>
+                        <div class="wechat-settings-card">
+                            <div class="wechat-settings-row">
+                                <div class="wechat-settings-row-main">
+                                    <div class="wechat-settings-label">全局背景图</div>
+                                    <div class="wechat-settings-desc">消息列表、发现、我及朋友圈、钱包等全页背景的底图</div>
+                                    <div class="wechat-settings-status" id="wechat-settings-bg-status">未设置</div>
+                                    <div class="wechat-settings-preview-block" id="wechat-settings-bg-preview-block" hidden>
+                                        <div class="wechat-settings-preview-caption">当前背景预览</div>
+                                        <img class="wechat-settings-bg-thumb" id="wechat-settings-bg-thumb" alt="" decoding="async">
+                                    </div>
+                                </div>
+                                <div class="wechat-settings-row-actions">
+                                    <input type="file" id="wechat-global-bg-input" class="wechat-settings-file" accept="image/jpeg,image/jpg,image/png,image/gif,.jpg,.jpeg,.png,.gif" onchange="handleWechatGlobalBgFile(event)">
+                                    <button type="button" class="wechat-settings-btn" onclick="document.getElementById('wechat-global-bg-input').click()">选择图片</button>
+                                    <button type="button" class="wechat-settings-btn secondary" onclick="clearWechatGlobalBg()">清除</button>
+                                </div>
+                            </div>
+                            <div class="wechat-settings-row wechat-settings-row--bubble">
+                                <div class="wechat-settings-label">聊天气泡</div>
+                                <div class="wechat-settings-desc">在下方编辑框粘贴 CSS。常用选择器：<code>.chat-message-bubble</code>、<code>.my-message .chat-message-bubble</code>、<code>.other-message .chat-message-bubble</code>。修改后会短暂延迟并<strong>实时预览</strong>（与聊天界面同步）；点「应用」写入本地保存。</div>
+                                <div class="wechat-settings-bubble-preview-block" id="wechat-settings-bubble-preview-block">
+                                    <div class="wechat-settings-preview-caption">样式预览</div>
+                                    <div class="wechat-settings-bubble-preview-host" id="wechat-settings-bubble-preview-host">
+                                        <div class="chat-message other-message wechat-settings-bubble-preview-row">
+                                            <div class="chat-message-avatar transparent-avatar"></div>
+                                            <div class="chat-message-content">
+                                                <div class="chat-message-bubble">对方预览 · 这是一条示例消息</div>
+                                            </div>
+                                        </div>
+                                        <div class="chat-message my-message wechat-settings-bubble-preview-row">
+                                            <div class="chat-message-content">
+                                                <div class="chat-message-bubble">我预览 · 这是一条示例消息</div>
+                                            </div>
+                                            <div class="chat-message-avatar transparent-avatar"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <textarea id="wechat-bubble-css-textarea" class="wechat-bubble-css-textarea" rows="11" spellcheck="false" placeholder="例如：&#10;.chat-message-bubble { border-radius: 16px; }&#10;.my-message .chat-message-bubble { background: #95ec69 !important; }" oninput="onWechatBubbleCssTextareaInput(event)"></textarea>
+                                <div class="wechat-settings-status" id="wechat-settings-css-status">未保存</div>
+                                <div class="wechat-settings-row-actions">
+                                    <button type="button" class="wechat-settings-btn" onclick="applyWechatBubbleCssFromEditor()">应用</button>
+                                    <button type="button" class="wechat-settings-btn secondary" onclick="clearWechatBubbleCss()">清除</button>
+                                </div>
+                            </div>
+                            <div class="wechat-settings-row">
+                                <div class="wechat-settings-row-main">
+                                    <div class="wechat-settings-label">全局字体</div>
+                                    <div class="wechat-settings-desc">填写 .ttf 的网络地址，或本站路径（推荐内置 <code style="font-size:11px;">/assets/FangZhengKaiTiJianTi-1.ttf</code> 方正楷体，无需外链）。保存后立即应用到整台小手机；清空后点「保存」或「清除」可关闭。使用外链时，中文等可能仍回退系统字体以防缺字；使用上述内置楷体时中英文均生效。</div>
+                                    <div class="wechat-settings-status" id="wechat-settings-font-status">未上传</div>
+                                    <div class="wechat-settings-preview-block" id="wechat-settings-font-preview-block" hidden>
+                                        <div class="wechat-settings-preview-caption">字体预览</div>
+                                        <div class="wechat-settings-font-sample" id="wechat-settings-font-sample">
+                                            Lego 小手机 · 微信设置<br>
+                                            The quick brown fox jumps over the lazy dog.<br>
+                                            0123456789 · 〇一二三四五六七八九十
+                                        </div>
+                                    </div>
+                                    <input type="text" id="wechat-global-font-url-input" class="wechat-settings-text-input" placeholder="/assets/FangZhengKaiTiJianTi-1.ttf" spellcheck="false" autocomplete="off" oninput="onWechatGlobalFontUrlInput(event)">
+                                </div>
+                                <div class="wechat-settings-row-actions">
+                                    <button type="button" class="wechat-settings-btn" onclick="saveWechatGlobalFontUrl()">保存</button>
+                                    <button type="button" class="wechat-settings-btn secondary" onclick="clearWechatGlobalFont()">清除</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
