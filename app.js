@@ -8,13 +8,159 @@ let receiveController = null; // AbortController用于取消API请求
 // 聊天记录内存：见 wechat-store.js（挂载 window.__chatHistoryMem / __chatHistoryPersistTimers）
 
 /**
- * OpenAI 兼容 chat/completions 的默认单次输出上限。
- * 上下文窗口不等于输出上限；当前兼容上限按服务端声明的 [1, 65537) 取 65536。
+ * Token 最大输出量：默认 45000，最高 1M（可在「API 设置」中调整）。
+ * 上下文窗口不等于输出上限；超出上游自身限额时仍会被上游拒绝并触发兼容下调重试。
  */
-const API_CHAT_COMPLETION_MAX_TOKENS = 65536;
+const API_MAX_OUTPUT_TOKENS_DEFAULT = 45000;
+const API_MAX_OUTPUT_TOKENS_MAX = 1000000;
+const API_WAIT_TIMEOUT_MINUTES_DEFAULT = 3;
+const API_WAIT_TIMEOUT_MINUTES_MIN = 0.5;
+const API_WAIT_TIMEOUT_MINUTES_MAX = 15;
 
-function resolveApiChatMaxTokens() {
-    return API_CHAT_COMPLETION_MAX_TOKENS;
+function readApiSettingsRawForRuntime() {
+    try {
+        const o = JSON.parse(localStorage.getItem('apiSettings') || '{}');
+        return o && typeof o === 'object' ? o : {};
+    } catch (_) {
+        return {};
+    }
+}
+
+function resolveApiChatMaxTokens(settings) {
+    const src = settings && typeof settings === 'object' ? settings : readApiSettingsRawForRuntime();
+    const n = parseInt(src.maxOutputTokens, 10);
+    if (!Number.isFinite(n) || n < 1) return API_MAX_OUTPUT_TOKENS_DEFAULT;
+    return Math.min(n, API_MAX_OUTPUT_TOKENS_MAX);
+}
+
+/** 「等待上限时长」分钟数 → 毫秒；非法值回落默认 3 分钟，范围 [0.5, 15]。 */
+function resolveApiWaitTimeoutMs(settings) {
+    const src = settings && typeof settings === 'object' ? settings : readApiSettingsRawForRuntime();
+    const n = parseFloat(src.waitTimeoutMinutes);
+    const minutes = Number.isFinite(n) && n > 0 ? n : API_WAIT_TIMEOUT_MINUTES_DEFAULT;
+    return Math.min(Math.max(minutes, API_WAIT_TIMEOUT_MINUTES_MIN), API_WAIT_TIMEOUT_MINUTES_MAX) * 60 * 1000;
+}
+
+function resolveApiStreamEnabled(settings) {
+    const src = settings && typeof settings === 'object' ? settings : readApiSettingsRawForRuntime();
+    return src.streamOutput === true || src.streamOutput === 'true';
+}
+
+/**
+ * 将外部取消信号与「等待上限时长」合并为统一请求信号。
+ * 返回 { controller, timedOut, timer }：timedOut=true 表示是超时而非用户取消。
+ */
+function combineAbortWithTimeout(externalController, timeoutMs) {
+    const ctrl = new AbortController();
+    const state = { controller: ctrl, timedOut: false, timer: null };
+    const ms = Number(timeoutMs);
+    if (Number.isFinite(ms) && ms > 0) {
+        state.timer = setTimeout(function () {
+            state.timedOut = true;
+            try { ctrl.abort(); } catch (_) {}
+        }, ms);
+    }
+    if (externalController && externalController.signal) {
+        const s = externalController.signal;
+        if (s.aborted) {
+            try { ctrl.abort(); } catch (_) {}
+        } else {
+            s.addEventListener('abort', function () {
+                try { ctrl.abort(); } catch (_) {}
+            }, { once: true });
+        }
+    }
+    return state;
+}
+
+/** 解析单个 SSE 事件块中的 data: 行，把 delta/message 片段累加进 acc。 */
+function consumeChatCompletionSseEvent(rawEvent, acc) {
+    const lines = String(rawEvent || '').split(/\r\n|\n|\r/);
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (!line || line.charAt(0) === ':' || line.indexOf('data:') !== 0) continue;
+        const dataStr = line.slice(5).trim();
+        if (!dataStr) continue;
+        if (dataStr === '[DONE]') {
+            acc.done = true;
+            continue;
+        }
+        let json;
+        try { json = JSON.parse(dataStr); } catch (_) { continue; }
+        if (!json || typeof json !== 'object') continue;
+        if (json.error) acc.error = json.error;
+        if (json.usage) acc.usage = json.usage;
+        const choice = Array.isArray(json.choices) ? json.choices[0] : null;
+        if (!choice) continue;
+        const delta = choice.delta || null;
+        const piece =
+            delta && typeof delta.content === 'string' ? delta.content :
+            delta && Array.isArray(delta.content) ? delta.content.map(function (p) { return (p && (p.text || p.content)) || ''; }).join('') :
+            !delta && choice.message && typeof choice.message.content === 'string' ? choice.message.content : '';
+        if (piece) acc.content += piece;
+        if (choice.finish_reason) acc.finishReason = choice.finish_reason;
+    }
+}
+
+/** 把一整段 SSE 文本（或残缺的流）聚合为 chat.completion 兼容对象。 */
+function parseChatCompletionStreamText(text) {
+    const acc = { content: '', done: false, finishReason: null, usage: null, error: null };
+    const events = String(text || '').split(/\r\n\r\n|\n\n|\r\r/);
+    for (let i = 0; i < events.length; i++) {
+        consumeChatCompletionSseEvent(events[i], acc);
+    }
+    return acc;
+}
+
+/**
+ * 读取 chat/completions 响应：上游返回 SSE 则逐段聚合；
+ * 若上游忽略了 stream 参数而返回普通 JSON，则按原样解析。
+ * 返回结构与 response.json() 一致，调用方无需区分两种传输。
+ */
+async function readChatCompletionStream(response) {
+    const contentType = String((response.headers && response.headers.get('content-type')) || '').toLowerCase();
+    if (contentType.indexOf('text/event-stream') === -1) {
+        return await response.json();
+    }
+    const acc = { content: '', done: false, finishReason: null, usage: null, error: null };
+    if (!response.body || typeof response.body.getReader !== 'function') {
+        // 老 WebView 无 ReadableStream：退化为整体读取后按 SSE 文本解析
+        const whole = await response.text();
+        const parsed = parseChatCompletionStreamText(whole);
+        Object.assign(acc, parsed);
+    } else {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let buffer = '';
+        while (true) {
+            const r = await reader.read();
+            if (r.done) break;
+            buffer += decoder.decode(r.value, { stream: true });
+            let m;
+            const sep = /\r\n\r\n|\n\n|\r\r/g;
+            let lastEnd = 0;
+            while ((m = sep.exec(buffer)) !== null) {
+                consumeChatCompletionSseEvent(buffer.slice(lastEnd, m.index), acc);
+                lastEnd = m.index + m[0].length;
+            }
+            buffer = buffer.slice(lastEnd);
+        }
+        buffer += decoder.decode();
+        if (buffer.trim()) consumeChatCompletionSseEvent(buffer, acc);
+    }
+    if (acc.error) {
+        const em = typeof acc.error === 'object' && acc.error && acc.error.message != null
+            ? String(acc.error.message)
+            : String(acc.error);
+        throw new Error('上游流式返回错误: ' + em);
+    }
+    return {
+        choices: [{
+            message: { role: 'assistant', content: acc.content },
+            finish_reason: acc.finishReason || 'stop'
+        }],
+        usage: acc.usage || undefined
+    };
 }
 
 /** 从常见上游 400 文案中提取实际允许的最大输出 token；仅用于参数校验失败后的无计费兼容重试。 */
@@ -845,14 +991,11 @@ const FeatureCommandMapper = {
                 showLoading();
             }
 
-            const tempRaw = parseFloat(settings.temperature);
-            const temperature = Number.isFinite(tempRaw) ? tempRaw : 0.8;
-
             const requestData = {
                 model: settings.model,
                 messages: [{ role: 'user', content: content }],
-                temperature: temperature,
-                max_tokens: resolveApiChatMaxTokens()
+                stream: resolveApiStreamEnabled(settings),
+                max_tokens: resolveApiChatMaxTokens(settings)
             };
 
             // ── Prompt 大小预检（与长上下文模型对齐；仍防极端超大 body 超时） ───
@@ -878,8 +1021,22 @@ const FeatureCommandMapper = {
             let lastError = null;
             let maxTokensCompatibilityAdjusted = false;
 
+            // 「等待上限时长」与外部取消信号合并为统一请求信号；timedOut 用于区分超时与用户手动取消
+            const waitTimeoutMs = resolveApiWaitTimeoutMs(settings);
+            const waitState = combineAbortWithTimeout(controller, waitTimeoutMs);
+            const effectiveController = waitState.controller;
+            const waitMinutesLabel = String(Math.round((waitTimeoutMs / 60000) * 100) / 100);
+            const waitTimeoutError = function () {
+                return new Error(
+                    '等待模型返回超过 ' + waitMinutesLabel + ' 分钟上限，已自动取消本次请求。' +
+                    '可在「API 设置」调长等待上限时长（最高 15 分钟），或检查上游模型是否卡顿。'
+                );
+            };
+
+            try {
             for (let attempt = 0; attempt < maxAttempts; attempt++) {
-                if (controller && controller.signal && controller.signal.aborted) {
+                if (effectiveController.signal && effectiveController.signal.aborted) {
+                    if (waitState.timedOut) throw waitTimeoutError();
                     throw new DOMException('Aborted', 'AbortError');
                 }
                 if (retryDelaysMs[attempt]) {
@@ -887,7 +1044,7 @@ const FeatureCommandMapper = {
                 }
 
                 try {
-                    const built = buildOpenAiChatFetch(settings, requestData, controller);
+                    const built = buildOpenAiChatFetch(settings, requestData, effectiveController);
                     const fetchUrl = built.url;
                     const fetchOptions = built.options;
                     console.log('[API] 开始请求 attempt=' + (attempt + 1) + ' url=' + fetchUrl + ' bodySize=' + Math.round(fetchOptions.body.length / 1024) + 'KB');
@@ -955,7 +1112,9 @@ const FeatureCommandMapper = {
                         throw new Error((detail ? baseMsg + ' — ' + detail : baseMsg) + hint);
                     }
 
-                    const data = await response.json();
+                    const data = requestData.stream === true
+                        ? await readChatCompletionStream(response)
+                        : await response.json();
 
                     if (!options.skipOverlay) {
                         hideLoading();
@@ -967,6 +1126,9 @@ const FeatureCommandMapper = {
                     throw new Error('API返回数据格式错误');
                 } catch (error) {
                     lastError = error;
+                    if (waitState.timedOut) {
+                        throw waitTimeoutError();
+                    }
                     if (error.name === 'AbortError') {
                         throw error;
                     }
@@ -1003,6 +1165,9 @@ const FeatureCommandMapper = {
                     }
                     throw error;
                 }
+            }
+            } finally {
+                clearTimeout(waitState.timer);
             }
 
             if (lastError) {
@@ -3859,14 +4024,15 @@ async function triggerListenTogetherReply(friendId, songName, artist, lyrics) {
     const listenPayload = {
         model: settings.model || 'gpt-4o-mini',
         messages: [{ role: 'user', content: sendContent }],
-        stream: false,
-        max_tokens: resolveApiChatMaxTokens()
+        stream: resolveApiStreamEnabled(settings),
+        max_tokens: resolveApiChatMaxTokens(settings)
     };
+    const listenWaitState = combineAbortWithTimeout(receiveController, resolveApiWaitTimeoutMs(settings));
     try {
-        const { url: chatUrl, options: chatOpts } = buildOpenAiChatFetch(settings, listenPayload, receiveController);
+        const { url: chatUrl, options: chatOpts } = buildOpenAiChatFetch(settings, listenPayload, listenWaitState.controller);
         const res = await fetch(chatUrl, chatOpts);
         if (!res.ok) throw new Error(res.statusText);
-        const data = await res.json();
+        const data = listenPayload.stream ? await readChatCompletionStream(res) : await res.json();
         const text = (data.choices && data.choices[0] && data.choices[0].message?.content) || '';
         if (text) {
             const timestamp = Date.now();
@@ -3874,10 +4040,13 @@ async function triggerListenTogetherReply(friendId, songName, artist, lyrics) {
             saveChatMessage(friendId, 'friend', text, null, timestamp);
         }
     } catch (err) {
-        if (err.name !== 'AbortError') {
+        if (listenWaitState.timedOut) {
+            showNotification('一起听回复超时：等待模型返回超过上限');
+        } else if (err.name !== 'AbortError') {
             showNotification('一起听回复失败: ' + (err.message || '网络错误'));
         }
     } finally {
+        clearTimeout(listenWaitState.timer);
         isReceiving = false;
     }
 }
@@ -6762,13 +6931,16 @@ function sanitizeApiSettingsRecord(raw) {
     const src = raw && typeof raw === 'object' ? raw : {};
     const model = coerceApiModelToString(src.model);
     const memoryRaw = src.memoryCount;
-    const tempRaw = src.temperature;
+    const maxTokensRaw = src.maxOutputTokens;
+    const waitRaw = src.waitTimeoutMinutes;
     return {
         apiUrl: src.apiUrl != null ? String(src.apiUrl).trim() : '',
         apiKey: normalizeApiKeyForBearer(src.apiKey),
         model,
         memoryCount: memoryRaw != null && memoryRaw !== '' ? memoryRaw : '50',
-        temperature: tempRaw != null && tempRaw !== '' ? tempRaw : '0.7',
+        streamOutput: src.streamOutput !== undefined ? !!src.streamOutput : false,
+        maxOutputTokens: maxTokensRaw != null && maxTokensRaw !== '' ? String(maxTokensRaw) : '45000',
+        waitTimeoutMinutes: waitRaw != null && waitRaw !== '' ? String(waitRaw) : '3',
         timeAwareness: src.timeAwareness !== undefined ? !!src.timeAwareness : false,
         connectionStatus: src.connectionStatus != null ? String(src.connectionStatus) : 'disconnected'
     };
@@ -6799,7 +6971,9 @@ function syncApiSettingsFormFromRecord(settings, options) {
     const keyEl = document.getElementById('api-key');
     const modelEl = document.getElementById('model-name');
     const memoryEl = document.getElementById('memory-count');
-    const temperatureEl = document.getElementById('temperature');
+    const streamEl = document.getElementById('stream-output-toggle');
+    const maxTokensEl = document.getElementById('max-output-tokens');
+    const waitTimeoutEl = document.getElementById('wait-timeout-minutes');
     const timeAwareEl = document.getElementById('time-awareness-toggle');
 
     if (urlEl) urlEl.value = settings.apiUrl || '';
@@ -6808,8 +6982,12 @@ function syncApiSettingsFormFromRecord(settings, options) {
     if (memoryEl && settings.memoryCount != null && settings.memoryCount !== '') {
         memoryEl.value = settings.memoryCount;
     }
-    if (temperatureEl && settings.temperature != null && settings.temperature !== '') {
-        temperatureEl.value = settings.temperature;
+    if (streamEl) streamEl.checked = !!settings.streamOutput;
+    if (maxTokensEl && settings.maxOutputTokens != null && settings.maxOutputTokens !== '') {
+        maxTokensEl.value = settings.maxOutputTokens;
+    }
+    if (waitTimeoutEl && settings.waitTimeoutMinutes != null && settings.waitTimeoutMinutes !== '') {
+        waitTimeoutEl.value = settings.waitTimeoutMinutes;
     }
     if (timeAwareEl) timeAwareEl.checked = !!settings.timeAwareness;
 
@@ -6841,7 +7019,7 @@ function refreshApiConnectionStatusFromStorage() {
 }
 
 function initApiSettingsFormDirtyTracking() {
-    const ids = ['api-url', 'api-key', 'model-name', 'memory-count', 'temperature'];
+    const ids = ['api-url', 'api-key', 'model-name', 'memory-count', 'stream-output-toggle', 'max-output-tokens', 'wait-timeout-minutes', 'time-awareness-toggle'];
     ids.forEach(function (id) {
         const el = document.getElementById(id);
         if (!el || el.dataset.apiDirtyBound === '1') return;
@@ -9747,16 +9925,19 @@ function getApiFloatingBallSavedPosition() {
     }
 }
 
-function saveApiFloatingBallPosition(x, y) {
-    localStorage.setItem(API_FLOATING_BALL_POSITION_KEY, JSON.stringify({ x, y }));
+function saveApiFloatingBallPosition(ball) {
+    const bounds = clampApiFloatingBallPosition(Infinity, Infinity, ball);
+    const x = (ball.offsetLeft - 8) / Math.max(1, bounds.x - 8);
+    const y = (ball.offsetTop - 8) / Math.max(1, bounds.y - 8);
+    localStorage.setItem(API_FLOATING_BALL_POSITION_KEY, JSON.stringify({ x, y, relative: true }));
 }
 
 function clampApiFloatingBallPosition(x, y, ball) {
     const size = ball ? ball.offsetWidth || 46 : 46;
     const minX = 8;
     const minY = 8;
-    const maxX = Math.max(minX, window.innerWidth - size - 8);
-    const maxY = Math.max(minY, window.innerHeight - size - 8);
+    const maxX = Math.max(minX, ball.parentElement.clientWidth - size - 8);
+    const maxY = Math.max(minY, ball.parentElement.clientHeight - ball.offsetHeight - 8);
     return {
         x: Math.min(Math.max(x, minX), maxX),
         y: Math.min(Math.max(y, minY), maxY)
@@ -9766,7 +9947,11 @@ function clampApiFloatingBallPosition(x, y, ball) {
 function applyApiFloatingBallPosition(pos) {
     const ball = document.getElementById('api-floating-ball');
     if (!ball) return;
-    const finalPos = clampApiFloatingBallPosition(pos && typeof pos.x === 'number' ? pos.x : window.innerWidth - 64, pos && typeof pos.y === 'number' ? pos.y : 112, ball);
+    const bounds = clampApiFloatingBallPosition(Infinity, Infinity, ball);
+    const frame = ball.parentElement.getBoundingClientRect();
+    const x = !pos ? bounds.x - 6 : pos.relative ? 8 + pos.x * (bounds.x - 8) : pos.x - frame.left;
+    const y = !pos ? 112 : pos.relative ? 8 + pos.y * (bounds.y - 8) : pos.y - frame.top;
+    const finalPos = clampApiFloatingBallPosition(x, y, ball);
     ball.style.left = `${finalPos.x}px`;
     ball.style.top = `${finalPos.y}px`;
     ball.style.right = 'auto';
@@ -10148,7 +10333,9 @@ function startApiFloatingBallDrag(ball, event) {
 
 function handleApiFloatingBallPointerDown(event) {
     const ball = event.currentTarget;
-    if (!ball || !getApiFloatingBallEnabled()) return;
+    if (!ball || !getApiFloatingBallEnabled() || !event.isPrimary || event.button !== 0 || apiFloatingBallPointerId !== null) return;
+    apiFloatingBallPointerId = event.pointerId;
+    try { ball.setPointerCapture(event.pointerId); } catch (e) {}
     resetApiFloatingBallIdle();
     apiFloatingBallMoved = false;
     cancelApiFloatingBallPressTimer();
@@ -10162,36 +10349,37 @@ function handleApiFloatingBallPointerDown(event) {
     }, API_FLOATING_BALL_DRAG_HOLD_MS);
 
     function onPointerMove(moveEvent) {
-        if (!ball.classList.contains('show')) return;
+        if (moveEvent.pointerId !== event.pointerId || !ball.classList.contains('show')) return;
         if (!apiFloatingBallDragging) {
             if (Math.abs(moveEvent.clientX - startX) > 8 || Math.abs(moveEvent.clientY - startY) > 8) {
                 cancelApiFloatingBallPressTimer();
+                apiFloatingBallMoved = true;
             }
             return;
         }
         apiFloatingBallMoved = true;
-        const pos = clampApiFloatingBallPosition(moveEvent.clientX - offsetX, moveEvent.clientY - offsetY, ball);
+        const frame = ball.parentElement.getBoundingClientRect();
+        const pos = clampApiFloatingBallPosition(moveEvent.clientX - offsetX - frame.left, moveEvent.clientY - offsetY - frame.top, ball);
         ball.style.left = `${pos.x}px`;
         ball.style.top = `${pos.y}px`;
         ball.style.right = 'auto';
     }
 
     function onPointerEnd(endEvent) {
+        if (endEvent.pointerId !== event.pointerId) return;
+        ball.removeEventListener('lostpointercapture', onPointerEnd);
         document.removeEventListener('pointermove', onPointerMove);
         document.removeEventListener('pointerup', onPointerEnd);
         document.removeEventListener('pointercancel', onPointerEnd);
         cancelApiFloatingBallPressTimer();
-        if (apiFloatingBallDragging) {
-            const rectNow = ball.getBoundingClientRect();
-            saveApiFloatingBallPosition(rectNow.left, rectNow.top);
-            try { ball.releasePointerCapture(endEvent.pointerId); } catch (e) {}
-            endApiFloatingBallDrag();
-            return;
-        }
-        openApiFloatingSettingsModal();
+        const tap = !apiFloatingBallDragging && !apiFloatingBallMoved && endEvent.type === 'pointerup';
+        if (apiFloatingBallDragging && ball.offsetWidth) saveApiFloatingBallPosition(ball);
+        endApiFloatingBallDrag();
+        if (tap && ball.classList.contains('show')) openApiFloatingSettingsModal();
     }
 
     document.addEventListener('pointermove', onPointerMove);
+    ball.addEventListener('lostpointercapture', onPointerEnd);
     document.addEventListener('pointerup', onPointerEnd);
     document.addEventListener('pointercancel', onPointerEnd);
 }
@@ -10210,23 +10398,21 @@ function initApiFloatingBall() {
     }
     if (ball) {
         ball.addEventListener('pointerdown', handleApiFloatingBallPointerDown);
+        ball.addEventListener('contextmenu', event => event.preventDefault());
+        ball.addEventListener('click', event => { if (event.detail === 0) openApiFloatingSettingsModal(); });
+        ball.addEventListener('pointerenter', resetApiFloatingBallIdle);
+        ball.addEventListener('focus', resetApiFloatingBallIdle);
     }
     if (presetSelect) {
         presetSelect.addEventListener('change', function() {
             applyPresetToFloatingSettings(this.value);
         });
     }
-    ['pointerdown', 'mousemove', 'touchstart', 'keydown', 'wheel'].forEach(eventName => {
-        document.addEventListener(eventName, resetApiFloatingBallIdle, { passive: true });
-    });
-    window.addEventListener('resize', function() {
-        if (!getApiFloatingBallEnabled()) return;
-        const saved = getApiFloatingBallSavedPosition();
-        if (!saved) return;
-        const finalPos = clampApiFloatingBallPosition(saved.x, saved.y, document.getElementById('api-floating-ball'));
-        saveApiFloatingBallPosition(finalPos.x, finalPos.y);
-        applyApiFloatingBallPosition(finalPos);
-    });
+    const fitToScreen = () => {
+        if (ball && ball.offsetWidth && !apiFloatingBallDragging) applyApiFloatingBallPosition(getApiFloatingBallSavedPosition());
+    };
+    if (ball && window.ResizeObserver) new ResizeObserver(fitToScreen).observe(ball.parentElement);
+    window.addEventListener('resize', fitToScreen);
     updateApiFloatingBallVisibility();
 }
 
@@ -10596,8 +10782,22 @@ function saveApiSettings() {
     const apiKey = normalizeApiKeyForBearer(apiKeyEl.value);
     const model = coerceApiModelToString(modelEl.value);
     const memoryCount = document.getElementById('memory-count').value;
-    const temperature = document.getElementById('temperature').value;
+    const streamEl = document.getElementById('stream-output-toggle');
+    const maxTokensEl = document.getElementById('max-output-tokens');
+    const waitTimeoutEl = document.getElementById('wait-timeout-minutes');
     const timeAwareness = document.getElementById('time-awareness-toggle').checked;
+
+    const streamOutput = streamEl ? !!streamEl.checked : false;
+
+    let maxOutputTokens = parseInt(maxTokensEl ? maxTokensEl.value : '', 10);
+    if (!Number.isFinite(maxOutputTokens) || maxOutputTokens < 1) maxOutputTokens = API_MAX_OUTPUT_TOKENS_DEFAULT;
+    if (maxOutputTokens > API_MAX_OUTPUT_TOKENS_MAX) maxOutputTokens = API_MAX_OUTPUT_TOKENS_MAX;
+    if (maxTokensEl) maxTokensEl.value = String(maxOutputTokens);
+
+    let waitTimeoutMinutes = parseFloat(waitTimeoutEl ? waitTimeoutEl.value : '');
+    if (!Number.isFinite(waitTimeoutMinutes) || waitTimeoutMinutes <= 0) waitTimeoutMinutes = API_WAIT_TIMEOUT_MINUTES_DEFAULT;
+    waitTimeoutMinutes = Math.min(Math.max(waitTimeoutMinutes, API_WAIT_TIMEOUT_MINUTES_MIN), API_WAIT_TIMEOUT_MINUTES_MAX);
+    if (waitTimeoutEl) waitTimeoutEl.value = String(waitTimeoutMinutes);
 
     if (!apiUrl || !apiKey) {
         showNotification('请填写API地址和API Key');
@@ -10623,7 +10823,9 @@ function saveApiSettings() {
             apiKey,
             model,
             memoryCount,
-            temperature,
+            streamOutput,
+            maxOutputTokens: String(maxOutputTokens),
+            waitTimeoutMinutes: String(waitTimeoutMinutes),
             timeAwareness
         });
         clearApiSettingsFormDirty();
@@ -10655,7 +10857,9 @@ function resetActiveApiSettings() {
                     model: '',
                     connectionStatus: 'disconnected',
                     memoryCount: current.memoryCount,
-                    temperature: current.temperature,
+                    streamOutput: current.streamOutput,
+                    maxOutputTokens: current.maxOutputTokens,
+                    waitTimeoutMinutes: current.waitTimeoutMinutes,
                     timeAwareness: current.timeAwareness
                 });
                 clearApiSettingsFormDirty();

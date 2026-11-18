@@ -1060,6 +1060,23 @@ const server = http.createServer((req, res) => {
 
                 const proxyReq = requester.request(upstreamOpts, (proxyRes) => {
                     proxyReq.setTimeout(0);
+                    const wantsStream = !!(payload && payload.stream === true);
+                    const upstreamType = String(proxyRes.headers['content-type'] || '');
+                    const upstreamOk = proxyRes.statusCode >= 200 && proxyRes.statusCode < 300;
+                    if (wantsStream && upstreamOk && /text\/event-stream/i.test(upstreamType)) {
+                        // 流式直通：SSE 边收边转发给浏览器；非 SSE/非 2xx 仍走下方聚合路径
+                        res.writeHead(proxyRes.statusCode, {
+                            'Content-Type': upstreamType,
+                            'Access-Control-Allow-Origin': '*',
+                            'Cache-Control': 'no-cache',
+                            'X-Accel-Buffering': 'no',
+                        });
+                        proxyRes.on('data', (c) => { try { res.write(c); } catch (_) {} });
+                        proxyRes.on('end', () => { try { res.end(); } catch (_) {} });
+                        proxyRes.on('error', () => { try { res.end(); } catch (_) {} });
+                        res.on('close', () => { try { proxyRes.destroy(); } catch (_) {} });
+                        return;
+                    }
                     const resChunks = [];
                     proxyRes.on('data', (c) => { resChunks.push(c); });
                     proxyRes.on('end', () => {
@@ -1068,7 +1085,15 @@ const server = http.createServer((req, res) => {
                     });
                 });
 
-                proxyReq.setTimeout(600000, () => {  // 10 分钟，兼容长 prompt（如心跳监控多段描写）与慢上游
+                // 浏览器断开（取消/超时/关页）时，中断上游请求，避免孤儿连接占线。
+                // 注意：req 的 close 在请求体读完即触发，必须挂在 res 上并以 writableEnded 区分正常完成。
+                res.on('close', () => {
+                    if (!res.writableEnded) {
+                        try { proxyReq.destroy(); } catch (_) {}
+                    }
+                });
+
+                proxyReq.setTimeout(960000, () => {  // 16 分钟兜底：客户端「等待上限时长」最高 15 分钟，由其先行中止
                     console.log('[代理 /api/chat/completions] upstream TIMEOUT');
                     proxyReq.destroy();
                     sendProxyClientOnce(504, JSON.stringify({ error: 'Upstream timeout' }));

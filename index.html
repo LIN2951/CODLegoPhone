@@ -93,6 +93,9 @@
     </div>
 
     <div id="app">
+        <button type="button" id="api-floating-ball" class="api-floating-ball" aria-label="打开简易 API 设置" aria-haspopup="dialog" title="轻点打开简易 API 设置，长按可移动">
+            <span class="api-floating-ball-core"></span>
+        </button>
         <!-- 主屏幕页面 -->
         <div id="home-screen" class="page active">
             <div class="home-screen-bg-layer" id="home-screen-bg-layer" aria-hidden="true"></div>
@@ -1526,12 +1529,35 @@
                     
                     <div class="setting-item with-value">
                         <div class="setting-row">
-                            <span class="setting-label">温度 (0-2)</span>
+                            <span class="setting-label">流式输出</span>
                             <div class="setting-value">
-                                <input type="number" id="temperature" class="setting-number" value="0.8" min="0" max="2" step="0.1">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="stream-output-toggle">
+                                    <span class="toggle-slider"></span>
+                                </label>
                             </div>
                         </div>
-                        <div class="setting-description">越低越稳定精准，越高越有创造性和随机性</div>
+                        <div class="setting-description">开启后系统将以流式（SSE）逐段接收模型返回内容，长回复更不易中途超时；若上游不支持流式会自动回退为普通接收。</div>
+                    </div>
+
+                    <div class="setting-item with-value">
+                        <div class="setting-row">
+                            <span class="setting-label">Token 最大输出量</span>
+                            <div class="setting-value">
+                                <input type="number" id="max-output-tokens" class="setting-number" value="45000" min="1" max="1000000" step="1">
+                            </div>
+                        </div>
+                        <div class="setting-description">单次请求允许模型输出的最大 Token 数（默认 45000，最高 1M）。回复被截断时可调高；若上游报错超出其限额，请调低。</div>
+                    </div>
+
+                    <div class="setting-item with-value">
+                        <div class="setting-row">
+                            <span class="setting-label">等待上限时长（分钟）</span>
+                            <div class="setting-value">
+                                <input type="number" id="wait-timeout-minutes" class="setting-number" value="3" min="0.5" max="15" step="0.5">
+                            </div>
+                        </div>
+                        <div class="setting-description">系统等待模型返回内容的最长时间（默认 3 分钟，最高 15 分钟），超时将自动取消本次请求。</div>
                     </div>
                     
                     <div class="setting-item with-toggle">
@@ -2853,10 +2879,6 @@
             </div>
             <div class="couple-takeout-detail-body" id="couple-takeout-detail-body"></div>
         </div>
-        <!-- 简易 API 悬浮球：挂在 #app 顶层，勿放在某一 .page 内（切页 display:none 会隐藏）；勿放入默认隐藏的 .modal -->
-        <button type="button" id="api-floating-ball" class="api-floating-ball" aria-label="打开简易 API 设置" aria-haspopup="dialog" title="轻点打开简易 API 设置，长按可移动">
-            <span class="api-floating-ball-core"></span>
-        </button>
 
         <div class="modal" id="proactive-candidates-modal">
             <div class="modal-content forward-friends-modal-content">
