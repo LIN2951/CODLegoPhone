@@ -1,0 +1,63 @@
+Lego 小手机 个人使用许可协议（Personal Use License）
+
+Copyright (c) 2026 NaomiGogogo. All rights reserved.
+
+本协议适用于本仓库中的全部代码、资源、文档及衍生内容（以下统称"本软件"）。
+下载、克隆或使用本软件即表示你同意以下条款。
+
+═══════════════════════════════════════════════════════════════
+一、允许的行为
+═══════════════════════════════════════════════════════════════
+
+1. 下载、克隆本软件，并在你自己的设备上运行；
+2. 以个人使用为目的修改本软件源代码（私自二改），前提是：
+   a) 修改后的版本仅供你本人使用；
+   b) 必须在本软件及所有修改版本的显著位置（包括但不限于
+      LICENSE 文件、README、源代码文件头部注释）完整保留
+      版权签名：
+         Copyright (c) 2026 NaomiGogogo
+   c) 不得删除或修改任何已有文件中的版权签名及本许可声明。
+
+═══════════════════════════════════════════════════════════════
+二、禁止的行为
+═══════════════════════════════════════════════════════════════
+
+未经版权所有者书面许可，你不得：
+
+1. 将本软件或其任何部分（原版或修改版）转发、分发、复制、
+   上传、发布、共享或以任何形式提供给任何第三方；
+   包括但不限于：转发给他人、上传至其他网站/网盘/群聊、
+   在其他仓库中再发布；
+2. 将本软件或其任何部分（原版或修改版）用于任何商业目的，
+   包括但不限于：出售、付费下载、捆绑销售、商业部署、
+   以此牟利或获取报酬；
+3. 移除、遮盖、修改版权所有者在本软件中留下的版权签名
+   及本许可声明。
+
+═══════════════════════════════════════════════════════════════
+三、其他条款
+═══════════════════════════════════════════════════════════════
+
+1. 本软件按"现状"提供，不附带任何明示或默示的担保，
+   版权所有者不对使用本软件产生的任何后果承担责任；
+2. 违反本协议任何条款的，本协议授予你的权利自动终止，
+   版权所有者保留追究法律责任的权利；
+3. 如需商业授权或超出本协议范围的使用方式，
+   请联系作者：NaomiGogogo（https://github.com/NaomiGogogo）。
+
+═══════════════════════════════════════════════════════════════
+English Summary (for reference only, 以中文条款为准)
+═══════════════════════════════════════════════════════════════
+
+Copyright (c) 2026 NaomiGogogo. All rights reserved.
+
+- Personal use and PRIVATE modification ONLY.
+- NO redistribution of the original or modified versions
+  in any form (no forwarding, uploading, republishing,
+  or sharing with any third party).
+- NO commercial use of any kind (no selling, monetizing,
+  or commercial deployment).
+- The copyright notice "Copyright (c) 2026 NaomiGogogo"
+  must be retained in all copies and modified versions.
+- Provided "as is" without warranty of any kind.
+- For commercial licensing, contact the author on GitHub.

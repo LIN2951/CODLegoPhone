@@ -43,7 +43,13 @@ system_commands.json   系统指令
 system_friend_*.json   内置 AI 好友人设
 ```
 
-## 开源说明
+## 许可协议（License）
 
-- 项目不包含任何 API Key，AI 接口密钥由使用者在应用内自行填写。
-- 若用于开源发布，请补充 `LICENSE` 文件。
+Copyright (c) 2026 NaomiGogogo. All rights reserved.
+
+本项目为**源码可见**（source-available）项目，采用自定义个人使用许可，详见 [LICENSE](LICENSE)：
+
+- ✅ 允许：下载运行、为个人使用私自二改（须保留版权签名 `Copyright (c) 2026 NaomiGogogo`）
+- ❌ 禁止：任何形式的分发/转发（原版或修改版）、任何形式的商业使用与出售
+
+项目不包含任何 API Key，AI 接口密钥由使用者在应用内自行填写。
