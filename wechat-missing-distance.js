@@ -2,7 +2,7 @@
  * Lego 小手机 · 微信「情侣空间 - 思念距离」
  *
  * 功能：
- * 1. 矢量地图显示（模仿高德/谷歌地图）
+ * 1. 手绘地图底图与双方位置示意
  * 2. 位置设置和距离计算（三层降级：API → 联网搜索 → AI模型兜底）
  * 3. 地图聊天功能（纯文字，地图作为背景）
  * 4. 总结功能
@@ -19,6 +19,7 @@
     var editingMapMessageIndex = -1;
     var isMapMultiselectMode = false;
     var selectedMapMessageIndexes = new Set();
+    var keepLatestMapMessageVisible = true;
 
     function store() {
         return global.Wechat && global.Wechat.store && global.Wechat.store.coupleSpace ? global.Wechat.store.coupleSpace : null;
@@ -99,203 +100,120 @@
     var charAvatarImage = null;
     var userAvatarImage = null;
 
-    function loadAvatarImages() {
-        // 加载Char头像
-        var friend = getFriendById(currentFriendId);
-        if (friend && friend.avatar) {
-            charAvatarImage = new Image();
-            charAvatarImage.crossOrigin = 'anonymous';
-            charAvatarImage.src = friend.avatar;
-            charAvatarImage.onload = function() {
-                renderMapCanvas();
-            };
-        }
+    function loadMapAvatar(src) {
+        if (!src) return null;
+        var image = new Image();
+        image.onload = renderMapCanvas;
+        image.src = src;
+        return image;
+    }
 
-        // 加载User头像
+    function loadAvatarImages() {
+        var friend = getFriendById(currentFriendId);
         var userInfo = typeof safeReadJsonFromStorage === 'function' ? safeReadJsonFromStorage('userInfo', {}) : {};
         var myProfile = typeof safeReadJsonFromStorage === 'function' ? safeReadJsonFromStorage('myProfile', null) : null;
-        var userAvatar = (userInfo && userInfo.avatar) || (myProfile && myProfile.avatar) || '';
-
-        if (userAvatar) {
-            userAvatarImage = new Image();
-            userAvatarImage.crossOrigin = 'anonymous';
-            userAvatarImage.src = userAvatar;
-            userAvatarImage.onload = function() {
-                renderMapCanvas();
-            };
-        }
+        charAvatarImage = loadMapAvatar(friend && friend.avatar);
+        userAvatarImage = loadMapAvatar((userInfo && userInfo.avatar) || (myProfile && myProfile.avatar));
     }
 
-    function calculateAvatarPositions(distance, canvasWidth, canvasHeight) {
-        // 根据距离计算头像位置
-        // distance: 公里数
-        // 返回 { charX, charY, userX, userY }
-
-        var centerX = canvasWidth / 4; // 实际宽度的一半（因为scale(2,2)）
-        var centerY = canvasHeight / 4;
-
-        if (!distance || distance === 0) {
-            // 同一地点，头像重叠在中心
-            return {
-                charX: centerX - 15,
-                charY: centerY,
-                userX: centerX + 15,
-                userY: centerY
-            };
-        }
-
-        // 根据距离计算偏移量
-        // 距离越大，偏移越大，但有上限
-        // 使用对数函数让距离映射更合理
-        var maxOffset = Math.min(canvasWidth / 6, canvasHeight / 6);
-        var normalizedDistance = Math.min(distance / 20000, 1); // 20000公里为最大参考距离
-        var offset = maxOffset * normalizedDistance;
-
-        // Char在左侧，User在右侧
-        return {
-            charX: centerX - offset,
-            charY: centerY,
-            userX: centerX + offset,
-            userY: centerY
-        };
-    }
-
-    function drawRoundedImage(ctx, img, x, y, size, borderColor) {
-        if (!img || !img.complete) return;
-
+    function drawMapAvatar(ctx, image, x, y, size, color, label) {
         ctx.save();
-
-        // 绘制圆形边框
         ctx.beginPath();
-        ctx.arc(x, y, size / 2 + 2, 0, Math.PI * 2);
-        ctx.strokeStyle = borderColor;
-        ctx.lineWidth = 3;
+        ctx.arc(x, y, (size + 4) / 2, 0, Math.PI * 2);
+        ctx.strokeStyle = '#fffaf5';
+        ctx.lineWidth = 2;
         ctx.stroke();
-
-        // 裁剪为圆形
+        ctx.fillStyle = color;
+        ctx.fill();
         ctx.beginPath();
-        ctx.arc(x, y, size / 2, 0, Math.PI * 2);
-        ctx.closePath();
+        ctx.arc(x, y, size / 2 - 2, 0, Math.PI * 2);
         ctx.clip();
-
-        // 绘制头像
-        ctx.drawImage(img, x - size / 2, y - size / 2, size, size);
-
+        if (image && image.naturalWidth && image.naturalHeight) {
+            var crop = Math.min(image.naturalWidth, image.naturalHeight);
+            ctx.drawImage(image, (image.naturalWidth - crop) / 2, (image.naturalHeight - crop) / 2, crop, crop,
+                x - size / 2, y - size / 2, size, size);
+        } else {
+            ctx.fillStyle = '#fffaf5';
+            ctx.font = '600 ' + Math.min(14, size / 2) + 'px system-ui, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(label, x, y);
+        }
         ctx.restore();
     }
 
-    function drawLocationText(ctx, text, x, y, color) {
-        ctx.save();
-        ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    function drawLocationText(ctx, text, x, y, maxWidth, color) {
+        if (maxWidth < 30) return;
+        ctx.font = '600 12px system-ui, sans-serif';
         ctx.textAlign = 'center';
-        ctx.textBaseline = 'top';
-
-        // 绘制文字背景
-        var metrics = ctx.measureText(text);
-        var textWidth = metrics.width;
-        var padding = 6;
-
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-        ctx.fillRect(x - textWidth / 2 - padding, y, textWidth + padding * 2, 20);
-
-        // 绘制文字
+        ctx.textBaseline = 'middle';
+        var characters = Array.from(String(text));
+        var suffix = characters.length > 40 ? '…' : '';
+        characters = characters.slice(0, 40);
+        var label = characters.join('') + suffix;
+        while (characters.length && ctx.measureText(label).width > maxWidth - 16) {
+            characters.pop();
+            label = characters.join('') + '…';
+        }
+        var width = ctx.measureText(label).width + 16;
+        ctx.fillStyle = 'rgba(255, 251, 247, 0.96)';
+        ctx.beginPath();
+        if (typeof ctx.roundRect === 'function') ctx.roundRect(x - width / 2, y, width, 22, 11);
+        else ctx.rect(x - width / 2, y, width, 22);
+        ctx.fill();
         ctx.fillStyle = color;
-        ctx.fillText(text, x, y + 4);
-
-        ctx.restore();
+        ctx.fillText(label, x, y + 11);
     }
 
     function renderMapCanvas() {
         var canvas = document.getElementById('missing-distance-map-canvas');
         if (!canvas) return;
-
+        var width = canvas.clientWidth;
+        var height = canvas.clientHeight;
+        if (!width || !height) return;
         var ctx = canvas.getContext('2d');
-        var w = canvas.width = canvas.offsetWidth * 2; // 高清显示
-        var h = canvas.height = canvas.offsetHeight * 2;
-        ctx.scale(2, 2);
+        if (!ctx) return;
+        var ratio = Math.min(global.devicePixelRatio || 1, 2);
+        var pixelWidth = Math.round(width * ratio);
+        var pixelHeight = Math.round(height * ratio);
+        if (canvas.width !== pixelWidth) canvas.width = pixelWidth;
+        if (canvas.height !== pixelHeight) canvas.height = pixelHeight;
+        ctx.setTransform(pixelWidth / width, 0, 0, pixelHeight / height, 0, 0);
+        ctx.clearRect(0, 0, width, height);
 
-        // 绘制矢量地图背景（模仿高德地图风格）
-        // 背景色
-        ctx.fillStyle = '#F5F5F5';
-        ctx.fillRect(0, 0, w / 2, h / 2);
-
-        // 绘制网格线
-        ctx.strokeStyle = '#E0E0E0';
-        ctx.lineWidth = 0.5;
-        for (var i = 0; i < w / 2; i += 40) {
-            ctx.beginPath();
-            ctx.moveTo(i, 0);
-            ctx.lineTo(i, h / 2);
-            ctx.stroke();
+        if (!distanceData || !distanceData.charLocation || !distanceData.userLocation) {
+            canvas.setAttribute('aria-hidden', 'true');
+            canvas.removeAttribute('aria-label');
+            return;
         }
-        for (var j = 0; j < h / 2; j += 40) {
-            ctx.beginPath();
-            ctx.moveTo(0, j);
-            ctx.lineTo(w / 2, j);
-            ctx.stroke();
-        }
+        canvas.removeAttribute('aria-hidden');
+        canvas.setAttribute('aria-label', '位置示意：TA 在' + distanceData.charLocation + '，你在' + distanceData.userLocation);
 
-        // 绘制道路（随机生成几条）
-        ctx.strokeStyle = '#FFFFFF';
-        ctx.lineWidth = 3;
+        var avatarSize = Math.min(50, width / 6, height - 34);
+        if (avatarSize < 16) return;
+        var minOffset = avatarSize / 2 + 9;
+        var maxOffset = Math.max(minOffset, width * 0.30);
+        var distance = Math.max(0, Number(distanceData.distance) || 0);
+        var offset = minOffset + (maxOffset - minOffset) * Math.min(distance / 20000, 1);
+        var charX = width / 2 - offset;
+        var userX = width / 2 + offset;
+        var y = (height - 26) / 2;
+
+        ctx.strokeStyle = '#a85152';
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([5, 5]);
         ctx.beginPath();
-        ctx.moveTo(0, h / 4);
-        ctx.lineTo(w / 2, h / 4);
+        ctx.moveTo(charX, y);
+        ctx.lineTo(userX, y);
         ctx.stroke();
+        ctx.setLineDash([]);
 
-        ctx.beginPath();
-        ctx.moveTo(w / 4, 0);
-        ctx.lineTo(w / 4, h / 2);
-        ctx.stroke();
-
-        // 绘制头像和位置信息（如果有距离数据）
-        if (distanceData && distanceData.charLocation && distanceData.userLocation) {
-            var distance = distanceData.distance || 0;
-            var positions = calculateAvatarPositions(distance, w, h);
-
-            // 绘制连接线
-            if (distance > 0) {
-                ctx.strokeStyle = '#FF6B9D';
-                ctx.lineWidth = 2;
-                ctx.setLineDash([5, 5]);
-                ctx.beginPath();
-                ctx.moveTo(positions.charX, positions.charY);
-                ctx.lineTo(positions.userX, positions.userY);
-                ctx.stroke();
-                ctx.setLineDash([]);
-            }
-
-            var avatarSize = 50;
-
-            // 绘制Char头像
-            if (charAvatarImage && charAvatarImage.complete) {
-                drawRoundedImage(ctx, charAvatarImage, positions.charX, positions.charY, avatarSize, '#FF6B9D');
-            } else {
-                // 降级：绘制圆形标记
-                ctx.fillStyle = '#FF6B9D';
-                ctx.beginPath();
-                ctx.arc(positions.charX, positions.charY, avatarSize / 2, 0, Math.PI * 2);
-                ctx.fill();
-            }
-
-            // 绘制User头像
-            if (userAvatarImage && userAvatarImage.complete) {
-                drawRoundedImage(ctx, userAvatarImage, positions.userX, positions.userY, avatarSize, '#6B9DFF');
-            } else {
-                // 降级：绘制圆形标记
-                ctx.fillStyle = '#6B9DFF';
-                ctx.beginPath();
-                ctx.arc(positions.userX, positions.userY, avatarSize / 2, 0, Math.PI * 2);
-                ctx.fill();
-            }
-
-            // 绘制位置文字
-            var charLocationText = distanceData.charLocation || 'TA的位置';
-            var userLocationText = distanceData.userLocation || '你的位置';
-
-            drawLocationText(ctx, charLocationText, positions.charX, positions.charY + avatarSize / 2 + 8, '#FF6B9D');
-            drawLocationText(ctx, userLocationText, positions.userX, positions.userY + avatarSize / 2 + 8, '#6B9DFF');
-        }
+        drawMapAvatar(ctx, charAvatarImage, charX, y, avatarSize, '#a85152', 'TA');
+        drawMapAvatar(ctx, userAvatarImage, userX, y, avatarSize, '#4b6496', '你');
+        var labelY = y + avatarSize / 2 + 5;
+        var labelWidth = 2 * Math.min(charX, offset) - 10;
+        drawLocationText(ctx, distanceData.charLocation, charX, labelY, labelWidth, '#833b43');
+        drawLocationText(ctx, distanceData.userLocation, userX, labelY, labelWidth, '#314a7b');
     }
 
     // ==================== 距离计算（三层降级策略） ====================
@@ -442,12 +360,19 @@
     function displayDistanceResult(result) {
         var resultDiv = document.getElementById('missing-distance-result');
         if (!resultDiv) return;
+        if (!result) {
+            resultDiv.innerHTML = '<div class="missing-distance-result-placeholder">点击「思念距离」计算距离和时差</div>';
+            return;
+        }
 
-        var distText = result.distance > 0 ?
-            'TA距离你 ' + result.distance.toFixed(2) + ' 公里' : '';
-        var timeText = result.timeDiff !== 0 ?
-            '你们之间的时差是 ' + Math.abs(result.timeDiff).toFixed(1) + ' 小时' :
-            '你们在同一时区';
+        var distance = Number(result.distance);
+        var timeDiff = Number(result.timeDiff);
+        var distText = result.distance != null && Number.isFinite(distance) && distance >= 0
+            ? 'TA 距离你 ' + distance.toFixed(2) + ' 公里' : '距离暂无数据';
+        var timeText = '时差暂无数据';
+        if (result.timeDiff != null && Number.isFinite(timeDiff)) {
+            timeText = timeDiff === 0 ? '你们在同一时区' : '时差 ' + Math.abs(timeDiff).toFixed(1) + ' 小时';
+        }
 
         resultDiv.innerHTML = '<div class="missing-distance-result-item">' + esc(distText) + '</div>' +
             '<div class="missing-distance-result-item">' + esc(timeText) + '</div>';
@@ -498,6 +423,8 @@
     function ensureMissingDistanceInteractionUi() {
         var page = getMissingDistancePage();
         if (!page) return;
+        var composer = page.querySelector('.missing-distance-composer');
+        if (!composer) return;
 
         if (!document.getElementById('missing-distance-action-menu')) {
             var menu = document.createElement('div');
@@ -533,7 +460,7 @@
                 '<button type="button" class="missing-distance-quote-close" aria-label="关闭引用">×</button>' +
                 '</div>' +
                 '<div class="missing-distance-quote-content" id="missing-distance-quote-content"></div>';
-            page.appendChild(quote);
+            composer.prepend(quote);
             quote.addEventListener('click', function (e) {
                 if (e.target && e.target.closest && e.target.closest('.missing-distance-quote-close')) {
                     e.preventDefault();
@@ -557,7 +484,7 @@
                 '<button type="button" class="missing-distance-mini-btn danger" data-action="delete">删除</button>' +
                 '<button type="button" class="missing-distance-mini-btn" data-action="cancel">取消</button>' +
                 '</div>';
-            page.appendChild(multi);
+            composer.appendChild(multi);
             multi.addEventListener('click', function (e) {
                 var btn = e.target && e.target.closest ? e.target.closest('button[data-action]') : null;
                 if (!btn) return;
@@ -704,11 +631,12 @@
         closeMissingDistanceActionMenu();
         var bubbleRect = bubble.getBoundingClientRect();
         var pageRect = page.getBoundingClientRect();
-        var menuWidth = 292;
+        var menuWidth = Math.min(292, pageRect.width - 16);
         var menuHeight = 66;
         var left = bubbleRect.left - pageRect.left + (bubbleRect.width / 2) - (menuWidth / 2);
         var top = bubbleRect.top - pageRect.top - menuHeight - 8;
         if (top < 8) top = bubbleRect.bottom - pageRect.top + 8;
+        top = Math.max(8, Math.min(top, pageRect.height - menuHeight - 8));
         if (left < 8) left = 8;
         if (left + menuWidth > pageRect.width - 8) left = Math.max(8, pageRect.width - menuWidth - 8);
 
@@ -809,13 +737,14 @@
         var name = document.getElementById('missing-distance-quote-name');
         var content = document.getElementById('missing-distance-quote-content');
         if (!frame || !name || !content) return;
-        if (!currentMapQuoteMessage) {
-            frame.classList.remove('show');
-            return;
+        var messages = document.getElementById('missing-distance-chat-messages');
+        var atEnd = messages && isMapChatAtEnd(messages);
+        if (currentMapQuoteMessage) {
+            name.textContent = mapSenderLabel(currentMapQuoteMessage);
+            content.textContent = mapQuotePreview(currentMapQuoteMessage, 80);
         }
-        name.textContent = mapSenderLabel(currentMapQuoteMessage);
-        content.textContent = mapQuotePreview(currentMapQuoteMessage, 80);
-        frame.classList.add('show');
+        frame.classList.toggle('show', Boolean(currentMapQuoteMessage));
+        if (atEnd) messages.scrollTop = messages.scrollHeight;
     }
 
     function closeMissingDistanceQuote() {
@@ -1045,10 +974,14 @@
         updateMissingDistanceSelectedCount();
     }
 
-    function renderMapChatMessages() {
+    function isMapChatAtEnd(messages) {
+        return messages.scrollHeight - messages.clientHeight - messages.scrollTop < 4;
+    }
+
+    function renderMapChatMessages(preserveScroll) {
         var container = document.getElementById('missing-distance-chat-messages');
         if (!container) return;
-
+        var previousScroll = container.scrollTop;
         container.innerHTML = '';
         container.classList.toggle('is-multiselect', isMapMultiselectMode);
 
@@ -1075,8 +1008,8 @@
         }
         updateMissingDistanceSelectedCount();
 
-        // 滚动到底部
-        if (!isMapMultiselectMode) container.scrollTop = container.scrollHeight;
+        container.scrollTop = preserveScroll ? previousScroll : container.scrollHeight;
+        keepLatestMapMessageVisible = isMapChatAtEnd(container);
     }
 
     function sendMapChatMessage() {
@@ -1369,6 +1302,56 @@
 
     // ==================== 页面控制 ====================
 
+    var toolbarIdleTimer = null;
+    var mapResizeObserver = null;
+
+    function updateMissingDistanceLayout() {
+        renderMapCanvas();
+        var messages = document.getElementById('missing-distance-chat-messages');
+        if (messages && keepLatestMapMessageVisible) messages.scrollTop = messages.scrollHeight;
+    }
+
+    function wakeMissingDistanceToolbar() {
+        var page = getMissingDistancePage();
+        if (!page || !page.classList.contains('show')) return;
+        var toolbar = page.querySelector('.missing-distance-toolbar');
+        if (!toolbar) return;
+        toolbar.classList.remove('is-idle');
+        global.clearTimeout(toolbarIdleTimer);
+        toolbarIdleTimer = global.setTimeout(function () {
+            toolbar.classList.add('is-idle');
+        }, 4000);
+    }
+
+    function startMissingDistanceLayout(page) {
+        var toolbar = page.querySelector('.missing-distance-toolbar');
+        var messages = document.getElementById('missing-distance-chat-messages');
+        if (toolbar && !page.dataset.boundMapToolbar) {
+            page.dataset.boundMapToolbar = '1';
+            ['pointerdown', 'focusin', 'keydown', 'wheel'].forEach(function (eventName) {
+                page.addEventListener(eventName, wakeMissingDistanceToolbar, { passive: true });
+            });
+            ['pointerenter', 'pointermove', 'pointerleave'].forEach(function (eventName) {
+                toolbar.addEventListener(eventName, wakeMissingDistanceToolbar, { passive: true });
+            });
+            if (messages) {
+                messages.addEventListener('scroll', function () {
+                    keepLatestMapMessageVisible = isMapChatAtEnd(messages);
+                }, { passive: true });
+            }
+        }
+        wakeMissingDistanceToolbar();
+        updateMissingDistanceLayout();
+        var canvas = document.getElementById('missing-distance-map-canvas');
+        if (canvas && typeof global.ResizeObserver === 'function') {
+            if (mapResizeObserver) mapResizeObserver.disconnect();
+            mapResizeObserver = new global.ResizeObserver(updateMissingDistanceLayout);
+            mapResizeObserver.observe(canvas);
+            if (messages) mapResizeObserver.observe(messages);
+        }
+        global.addEventListener('resize', updateMissingDistanceLayout);
+    }
+
     function openMissingDistancePage() {
         try {
             var fid = getActiveFriendIdFromPrivateContext();
@@ -1404,32 +1387,24 @@
                 var userLocInput = document.getElementById('missing-distance-user-location');
                 if (charLocInput) charLocInput.value = data.charLocation || '';
                 if (userLocInput) userLocInput.value = data.userLocation || '';
-
-                if (distanceData) {
-                    displayDistanceResult(distanceData);
-                }
             } else {
                 mapChatHistory = [];
                 distanceData = null;
                 apiSettings = { apiUrl: '', apiKey: '' };
             }
 
-            window.setTimeout(function () {
-                try {
-                    renderMapCanvas();
-                } catch (e1) {}
-            }, 100);
-            try {
-                renderMapChatMessages();
-            } catch (e2) {}
-
-            var page = document.getElementById('missing-distance-page');
+            displayDistanceResult(distanceData);
+            var page = getMissingDistancePage();
             var root = document.getElementById('couple-space-page');
             if (page) {
                 page.classList.add('show');
                 page.setAttribute('aria-hidden', 'false');
             }
             if (root) root.classList.add('is-missing-distance-open');
+            if (page) {
+                renderMapChatMessages();
+                startMissingDistanceLayout(page);
+            }
         } catch (err) {
             console.error('[思念距离]', err);
             if (typeof showNotification === 'function') showNotification('打开思念距离失败，请重试');
@@ -1445,6 +1420,12 @@
             page.setAttribute('aria-hidden', 'true');
         }
         if (root) root.classList.remove('is-missing-distance-open');
+        global.clearTimeout(toolbarIdleTimer);
+        if (mapResizeObserver) {
+            mapResizeObserver.disconnect();
+            mapResizeObserver = null;
+        }
+        global.removeEventListener('resize', updateMissingDistanceLayout);
 
         currentFriendId = '';
         mapChatHistory = [];

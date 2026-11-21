@@ -716,9 +716,6 @@ const CommandManager = {
     buildPhotoCardSendContent: function (friendId, descriptionText) {
         return Wechat.prompts.buildPhotoCardSendContent(friendId, descriptionText);
     },
-    buildReadTogetherSendContent: function (friendId) {
-        return Wechat.prompts.buildReadTogetherSendContent(friendId);
-    },
     buildTransferReceiveSendContent: function (friendId, amount) {
         return Wechat.prompts.buildTransferReceiveSendContent(friendId, amount);
     },
@@ -11790,19 +11787,7 @@ function confirmLocationShare() {
     showNotification('位置已发送');
 }
 
-// 一起看书 - 当前书架对应的好友ID、当前书单
-let readTogetherFriendId = null;
-let readTogetherBooks = [];
-
-// 保存一起看书书单到本地（按好友ID存储）
-function saveReadTogetherBooks(friendId, books) {
-    if (!friendId) return;
-    try {
-        localStorage.setItem(`readTogether_${friendId}`, JSON.stringify({ books: books || [], lastUpdated: Date.now() }));
-    } catch (e) { console.warn('保存一起看书数据失败:', e); }
-}
-
-// 从本地加载一起看书书单
+// 兼容旧书单，供现有聊天在提到这些书时读取读后感
 function loadReadTogetherBooks(friendId) {
     if (!friendId) return [];
     try {
@@ -11829,156 +11814,6 @@ function findMentionedBooksFromMessages(friendId, messageContents) {
         if (hasMatch && !mentioned.find(m => m.title === title)) mentioned.push(book);
     });
     return mentioned;
-}
-
-// 打开一起看书阅读书架
-function openReadTogetherShelf() {
-    const chatPage = document.getElementById('chat-page');
-    const friendId = chatPage ? chatPage.dataset.friendId : null;
-    if (!friendId) {
-        showNotification('未找到当前聊天');
-        return;
-    }
-    readTogetherFriendId = friendId;
-    const panel = document.getElementById('chat-read-together-panel');
-    const chatContent = document.querySelector('.chat-content');
-    const gridEl = document.getElementById('read-together-grid');
-    const emptyEl = document.getElementById('read-together-empty');
-    if (panel && chatContent) {
-        readTogetherBooks = loadReadTogetherBooks(friendId);
-        if (gridEl) {
-            if (readTogetherBooks.length > 0) {
-                const DEFAULT_COVER = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 160" fill="%23ddd"><rect width="120" height="160" rx="4" fill="%23e8e8e8"/><path d="M30 50h60M30 80h60M30 110h40" stroke="%23aaa" stroke-width="2"/></svg>');
-                gridEl.innerHTML = readTogetherBooks.map((b, i) => {
-                    const displayTitle = b.title.length > 12 ? b.title.substring(0, 12) + '…' : b.title;
-                    const cover = (b.cover || '').trim() || DEFAULT_COVER;
-                    return `<div class="read-together-book" data-index="${i}" onclick="showBookReviewByIndex(${i})">
-                        <div class="read-together-book-cover" style="background-image:url(${cover.replace(/"/g, '&quot;')})"></div>
-                        <div class="read-together-book-title">${escapeHtml(displayTitle)}</div>
-                    </div>`;
-                }).join('');
-                if (emptyEl) emptyEl.style.display = 'none';
-            } else {
-                gridEl.innerHTML = '';
-                if (emptyEl) emptyEl.style.display = '';
-            }
-        }
-        panel.classList.add('show');
-        chatContent.classList.add('read-together-panel-open');
-        requestAnimationFrame(() => {
-            chatContent.scrollTop = chatContent.scrollHeight;
-        });
-    }
-}
-
-// 关闭一起看书阅读书架
-function closeReadTogetherShelf() {
-    const panel = document.getElementById('chat-read-together-panel');
-    const chatContent = document.querySelector('.chat-content');
-    if (panel) panel.classList.remove('show');
-    if (chatContent) chatContent.classList.remove('read-together-panel-open');
-}
-
-// 刷新阅读书架（调用API获取推荐书籍）
-function refreshReadingShelf() {
-    if (!readTogetherFriendId) return;
-    const btn = document.getElementById('read-together-refresh-btn');
-    const emptyEl = document.getElementById('read-together-empty');
-    const gridEl = document.getElementById('read-together-grid');
-    if (!gridEl) return;
-    if (btn) {
-        btn.disabled = true;
-        btn.classList.add('loading');
-    }
-    const sendContent = CommandManager.buildReadTogetherSendContent(readTogetherFriendId);
-    if (!sendContent) {
-        showNotification('无法构建请求');
-        if (btn) { btn.disabled = false; btn.classList.remove('loading'); }
-        return;
-    }
-    FeatureCommandMapper.callApiModel(sendContent, null).then((response) => {
-        if (btn) {
-            btn.disabled = false;
-            btn.classList.remove('loading');
-        }
-        if (!response || !response.trim()) {
-            showNotification('未能获取书单');
-            return;
-        }
-        let books = [];
-        try {
-            let jsonStr = response.trim();
-            const jsonMatch = jsonStr.match(/\[[\s\S]*\]/);
-            if (jsonMatch) jsonStr = jsonMatch[0];
-            books = JSON.parse(jsonStr);
-        } catch (e) {
-            console.error('解析书单JSON失败:', e);
-            showNotification('书单格式解析失败，请重试');
-            return;
-        }
-        if (!Array.isArray(books) || books.length === 0) {
-            showNotification('暂未推荐到书籍');
-            return;
-        }
-        readTogetherBooks = books.map(b => ({
-            title: (b.title || '').replace(/^《|》$/g, '').trim() || '未知',
-            cover: (b.cover || '').trim() || '',
-            review: String(b.review || '').substring(0, 450)
-        }));
-        saveReadTogetherBooks(readTogetherFriendId, readTogetherBooks);
-        const DEFAULT_COVER = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 160" fill="%23ddd"><rect width="120" height="160" rx="4" fill="%23e8e8e8"/><path d="M30 50h60M30 80h60M30 110h40" stroke="%23aaa" stroke-width="2"/></svg>');
-        gridEl.innerHTML = readTogetherBooks.map((b, i) => {
-            const displayTitle = b.title.length > 12 ? b.title.substring(0, 12) + '…' : b.title;
-            const cover = b.cover || DEFAULT_COVER;
-            return `<div class="read-together-book" data-index="${i}" onclick="showBookReviewByIndex(${i})">
-                <div class="read-together-book-cover" style="background-image:url(${cover.replace(/"/g, '&quot;')})"></div>
-                <div class="read-together-book-title">${escapeHtml(displayTitle)}</div>
-            </div>`;
-        }).join('');
-        if (emptyEl) emptyEl.style.display = 'none';
-        showNotification('书单已刷新');
-    });
-}
-
-// 根据索引显示读后感
-function showBookReviewByIndex(index) {
-    const book = readTogetherBooks[index];
-    if (book) showBookReview(book);
-}
-
-// 显示读后感（Instagram风格）
-function showBookReview(book) {
-    if (!book || !readTogetherFriendId) return;
-    const modal = document.getElementById('read-review-modal');
-    const avatarEl = document.getElementById('read-review-avatar');
-    const nameEl = document.getElementById('read-review-friend-name');
-    const titleEl = document.getElementById('read-review-book-title');
-    const contentEl = document.getElementById('read-review-content');
-    if (!modal || !contentEl) return;
-    const friends = loadFriendsFromStorage();
-    const friend = friends.find(f => f.id == readTogetherFriendId);
-    const friendName = friend ? (friend.remark || friend.nickname || '好友') : '好友';
-    if (avatarEl && friend) {
-        const avatar = getFirstUsableAvatarUrl(friend.chatAvatar, friend.persona?.avatar, friend.avatar);
-        if (avatar) {
-            const clean = (avatar || '').replace(/^url\s*\(\s*["']?|["']?\s*\)\s*$/g, '').trim();
-            avatarEl.style.backgroundImage = `url(${clean})`;
-            avatarEl.style.backgroundSize = 'cover';
-        } else {
-            avatarEl.style.backgroundImage = '';
-            avatarEl.textContent = friendName.charAt(0);
-        }
-    }
-    if (nameEl) nameEl.textContent = friendName;
-    if (titleEl) titleEl.textContent = '《' + (book.title || '') + '》';
-    contentEl.innerHTML = (book.review || '').replace(/\n/g, '<br>');
-    modal.classList.add('show');
-}
-
-// 关闭读后感
-function closeBookReview() {
-    const modal = document.getElementById('read-review-modal');
-    if (modal) modal.classList.remove('show');
 }
 
 // 去除好友回复中不应存在的整条包裹式双引号（仅当整条消息被引号包住时去除；引用他人时的内部引号保留）

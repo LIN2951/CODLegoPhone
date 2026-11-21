@@ -1438,7 +1438,6 @@ function onMoreItemClick(action) {
         photos: 1,
         camera: 1,
         location: 1,
-        read: 1,
         listen: 1,
         voice: 1,
         video: 1,
@@ -1458,7 +1457,6 @@ function onMoreItemClick(action) {
         location: '位置',
         summary: '总结',
         offline: '线下模式',
-        read: '一起看书',
         gift: '礼物',
         photos: '照片',
         camera: '拍摄',
@@ -1478,8 +1476,6 @@ function onMoreItemClick(action) {
         openListenTogetherIsland();
     } else if (action === 'location') {
         openLocationModal();
-    } else if (action === 'read') {
-        openReadTogetherShelf();
     } else if (action === 'photos') {
         openPhotoCardModal();
     } else if (action === 'camera') {

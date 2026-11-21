@@ -32,8 +32,8 @@
     <link rel="icon" type="image/png" href="favicon.png" sizes="32x32">
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" sizes="180x180">
     <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="style.css?v=0.1.8-glass-badge">
-    <link rel="stylesheet" href="wechat.css?v=0.1.14-proactive">
+    <link rel="stylesheet" href="style.css?v=0.1.9-companion-reading">
+    <link rel="stylesheet" href="wechat.css?v=0.1.16-companion-reading">
     <link rel="stylesheet" href="liquid-glass-buttons.css?v=1.0.2">
     <link rel="stylesheet" href="desktop.css?v=20261028-1">
     <link rel="stylesheet" href="wechat-native.css?v=20261028-1">
@@ -49,17 +49,17 @@
     <script src="html-fragments.js?v=0.1.1"></script>
     <script src="wechat-shell.js?v=0.1.3"></script>
     <script src="wechat-temp-state.js?v=0.1.0"></script>
-    <script src="app.js?v=1.8.41-glass-badge"></script>
+    <script src="app.js?v=1.8.42-companion-reading"></script>
     <script src="wechat-bootstrap.js?v=0.1.0"></script>
     <script src="wechat-store.js?v=1.0.6-proactive"></script>
     <script src="moments-prompts.js"></script>
     <script src="twitter-prompts.js?v=1.0.9"></script>
     <script src="wechat-proactive-core.js?v=1.0.0"></script>
-    <script src="wechat-prompts.js?v=1.0.8-proactive"></script>
+    <script src="wechat-prompts.js?v=1.0.9-companion-reading"></script>
     <script src="wechat-emoji.js?v=0.1.0"></script>
     <script src="wechat-bubbles.js?v=0.2.0-bilingual-fold"></script>
     <script src="wechat-heartbeat.js?v=0.2.1-group-speaker"></script>
-    <script src="wechat-ui.js?v=0.3.1-native-chat"></script>
+    <script src="wechat-ui.js?v=0.3.2-companion-reading"></script>
     <script src="wechat-chat-pipeline.js?v=0.2.2-proactive"></script>
     <script src="wechat-proactive-runtime.js?v=1.1.1"></script>
     <script src="wechat-proactive-message.js?v=0.2.0"></script>
@@ -70,8 +70,9 @@
     <script src="wechat-ui-extras.js?v=0.1.3-long-memory-injection"></script>
     <script src="wechat-couple-space.js?v=0.1.1-png-upload"></script>
     <script src="wechat-couple-diary.js?v=0.2.2-png-upload"></script>
-    <script src="wechat-missing-distance.js?v=0.2.1-api-settings-names"></script>
+    <script src="wechat-missing-distance.js?v=0.3.0-fullscreen-map"></script>
     <script src="modules/milian-tarot/entry.js?v=1.0.1"></script>
+    <script src="modules/companion-reading/entry.js?v=4" defer></script>
     <script src="wechat-backup.js?v=0.1.3-milian-tarot"></script>
     <script src="moments-ui.js?v=0.1.1-png-upload"></script>
     <script src="twitter-ui.js?v=1.0.2-png-upload"></script>
@@ -1799,6 +1800,7 @@
                             <button type="button" class="couple-private-feature-note" id="couple-private-missing-distance-btn">思念距离</button>
                             <button type="button" class="couple-private-feature-note" id="couple-private-bill-btn" onclick="openCoupleBillPage()">爱的账单</button>
                             <button type="button" class="couple-private-feature-note" id="couple-private-tarot-btn">迷恋塔罗</button>
+                            <button type="button" class="couple-private-feature-note" id="couple-private-companion-reading-btn">相伴阅读</button>
                         </div>
                     </div>
                     <input type="file" id="couple-private-bg-input" accept="image/jpeg,image/jpg,image/png,image/gif,.jpg,.jpeg,.png,.gif" style="display:none;" onchange="handleCouplePrivateBgSelect(event)">
@@ -1827,7 +1829,7 @@
 
                 <!-- 思念距离页面 -->
                 <div class="missing-distance-page" id="missing-distance-page" aria-hidden="true">
-                    <div class="couple-diary-toolbar">
+                    <div class="couple-diary-toolbar missing-distance-heading">
                         <button type="button" class="couple-diary-toolbar-back" onclick="closeMissingDistancePage()" aria-label="返回" title="返回">
                             <svg class="couple-space-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                                 <path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1839,7 +1841,7 @@
 
                     <div class="missing-distance-body">
                         <!-- 顶部功能栏 -->
-                        <div class="missing-distance-toolbar">
+                        <div class="missing-distance-toolbar" role="group" aria-label="思念距离功能">
                             <button type="button" class="missing-distance-toolbar-btn" onclick="openMissingDistanceLocationEditor('char')">TA的位置</button>
                             <button type="button" class="missing-distance-toolbar-btn" onclick="openMissingDistanceLocationEditor('user')">你的位置</button>
                             <button type="button" class="missing-distance-toolbar-btn" onclick="openMissingDistanceApiSettings()">地图API设置</button>
@@ -1848,9 +1850,11 @@
 
                         <!-- 地图区域 -->
                         <div class="missing-distance-map-container">
-                            <canvas id="missing-distance-map-canvas" class="missing-distance-map-canvas"></canvas>
-                            <div class="missing-distance-result" id="missing-distance-result">
-                                <div class="missing-distance-result-placeholder">点击"思念距离"按钮计算</div>
+                            <div class="missing-distance-result" id="missing-distance-result" role="status">
+                                <div class="missing-distance-result-placeholder">点击「思念距离」计算距离和时差</div>
+                            </div>
+                            <div class="missing-distance-marker-layer">
+                                <canvas id="missing-distance-map-canvas" class="missing-distance-map-canvas" role="img" aria-hidden="true"></canvas>
                             </div>
 
                             <!-- 聊天消息显示区域 -->
@@ -1858,11 +1862,13 @@
                         </div>
 
                         <!-- 底部消息输入栏 -->
-                        <div class="missing-distance-chat-bar">
-                            <button type="button" id="missing-distance-receive-btn" class="missing-distance-chat-action-btn" onclick="receiveMapChatMessage()" title="接收消息">接收</button>
-                            <input type="text" id="missing-distance-chat-input" class="missing-distance-chat-input" placeholder="输入消息..." maxlength="500">
-                            <button type="button" class="missing-distance-chat-action-btn" onclick="summarizeMapChat()" title="总结聊天">总结</button>
-                            <button type="button" class="missing-distance-chat-send-btn" onclick="sendMapChatMessage()">发送</button>
+                        <div class="missing-distance-composer">
+                            <div class="missing-distance-chat-bar">
+                                <button type="button" id="missing-distance-receive-btn" class="missing-distance-chat-action-btn" onclick="receiveMapChatMessage()" title="接收消息">接收</button>
+                                <input type="text" id="missing-distance-chat-input" class="missing-distance-chat-input" aria-label="输入消息" placeholder="输入消息…" maxlength="500">
+                                <button type="button" class="missing-distance-chat-action-btn" onclick="summarizeMapChat()" title="总结聊天">总结</button>
+                                <button type="button" class="missing-distance-chat-send-btn" onclick="sendMapChatMessage()">发送</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2235,10 +2241,6 @@
                     <div class="chat-more-item" onclick="onMoreItemClick('offline')">
                         <div class="chat-more-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
                         <span class="chat-more-label">线下模式</span>
-                    </div>
-                    <div class="chat-more-item" onclick="onMoreItemClick('read')">
-                        <div class="chat-more-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/></svg></div>
-                        <span class="chat-more-label">一起看书</span>
                     </div>
                     <div class="chat-more-item" onclick="onMoreItemClick('listen')">
                         <div class="chat-more-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
@@ -2700,36 +2702,6 @@
                         <span class="dynamic-island-pause-icon" style="display:none">❚❚</span>
                     </button>
                     <button class="dynamic-island-close" onclick="closeListenTogetherIsland()" title="关闭">×</button>
-                </div>
-            </div>
-
-            <div class="chat-read-together-panel" id="chat-read-together-panel">
-                <div class="read-together-header">
-                    <span class="read-together-title">阅读书架</span>
-                    <div class="read-together-actions">
-                        <button class="read-together-refresh-btn" id="read-together-refresh-btn" onclick="refreshReadingShelf()" title="刷新书单">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-                        </button>
-                        <button class="read-together-close-btn" onclick="closeReadTogetherShelf()" title="关闭">×</button>
-                    </div>
-                </div>
-                <div class="read-together-shelf" id="read-together-shelf">
-                    <div class="read-together-empty" id="read-together-empty">书架为空，点击右上角刷新获取推荐书单</div>
-                    <div class="read-together-grid" id="read-together-grid"></div>
-                </div>
-            </div>
-
-            <div class="modal read-review-modal" id="read-review-modal" onclick="if(event.target.id==='read-review-modal') closeBookReview()">
-                <div class="read-review-container">
-                    <div class="read-review-header">
-                        <div class="read-review-avatar" id="read-review-avatar"></div>
-                        <div class="read-review-meta">
-                            <span class="read-review-friend-name" id="read-review-friend-name">好友</span>
-                            <span class="read-review-book-title" id="read-review-book-title">《书名》</span>
-                        </div>
-                        <button class="read-review-close" onclick="closeBookReview()">×</button>
-                    </div>
-                    <div class="read-review-content" id="read-review-content"></div>
                 </div>
             </div>
 

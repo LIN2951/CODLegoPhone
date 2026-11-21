@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>相伴阅读</title>
+  <link rel="stylesheet" href="reading.css?v=4">
+  <script type="module" src="reading.js?v=3"></script>
+</head>
+<body data-theme="mist">
+  <svg class="symbols" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></symbol>
+    <symbol id="i-next" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="5.5"/><path d="m15 15 4.5 4.5"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2.5"/><circle cx="15" cy="17" r="2.5"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 6.5C8.5 4.2 5 4.4 2.8 5.6v12.2c2.4-1.2 5.7-1.4 9.2.9 3.5-2.3 6.8-2.1 9.2-.9V5.6c-2.2-1.2-5.7-1.4-9.2.9Zm0 0v12.2"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4 6h.1M4 12h.1M4 18h.1"/></symbol>
+    <symbol id="i-mark" viewBox="0 0 24 24"><path d="M6.5 4h11v16L12 16l-5.5 4Z"/></symbol>
+    <symbol id="i-pair" viewBox="0 0 24 24"><path d="M19.6 5.6c2.3 2.3 1.9 5.6-.2 7.6L12 20l-7.4-6.8C2.5 11.2 2.1 7.9 4.4 5.6c2-2 5.2-1.8 7.6.8 2.4-2.6 5.6-2.8 7.6-.8Z"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4m-4 4 4-4 4 4M5 15v5h14v-5"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><path d="M4 11.5 20 4l-4.5 16-4.2-6.2L4 11.5Zm7.3 2.3L20 4"/></symbol>
+  </svg>
+
+  <main id="shelf" class="shelf" aria-label="相伴阅读书架">
+    <header class="topbar shelf-bar">
+      <button type="button" id="close-module" class="icon" aria-label="返回情侣空间"><svg><use href="#i-back"/></svg></button>
+      <h1>相伴阅读</h1>
+      <button type="button" id="search-toggle" class="icon" aria-label="搜索书架" aria-expanded="false" aria-controls="search-area"><svg><use href="#i-search"/></svg></button>
+      <button type="button" class="icon" data-open="settings" aria-label="阅读设置"><svg><use href="#i-settings"/></svg></button>
+    </header>
+    <div id="search-area" class="search-row" hidden><input id="shelf-search" type="search" placeholder="搜索书名或作者" aria-label="搜索书名或作者" autocomplete="off"></div>
+    <div class="shelf-body">
+      <section class="shelf-hero" aria-label="书架插画">
+        <img src="art/shelf.jpg" alt="晨雾中的湖与桌上的书" width="1300" height="760" fetchpriority="high">
+        <div class="hero-caption"><svg aria-hidden="true"><use href="#i-book"/></svg><span>两个人的书架</span></div>
+      </section>
+      <section class="library" aria-labelledby="shelf-title">
+        <div class="library-heading">
+          <h2 id="shelf-title">书架</h2>
+          <span id="book-count"></span>
+        </div>
+        <div class="filters" role="group" aria-label="书架筛选">
+          <button type="button" data-filter="all" aria-pressed="true">全部</button>
+          <button type="button" data-filter="reading" aria-pressed="false">在读</button>
+          <button type="button" data-filter="finished" aria-pressed="false">已读完</button>
+        </div>
+        <div id="book-grid" class="book-grid"></div>
+        <p id="shelf-message" class="shelf-message" role="status"></p>
+      </section>
+    </div>
+  </main>
+
+  <main id="reader" class="reader" hidden aria-label="阅读器">
+    <header class="topbar reader-bar">
+      <button type="button" id="back-to-shelf" class="icon" aria-label="返回书架"><svg><use href="#i-back"/></svg></button>
+      <div class="reader-label"><strong id="reader-title"></strong><span id="reader-chapter"></span></div>
+      <button type="button" id="toggle-bookmark" class="icon" aria-pressed="false" aria-label="添加书签"><svg><use href="#i-mark"/></svg></button>
+      <button type="button" class="icon" data-open="settings" aria-label="阅读设置"><svg><use href="#i-settings"/></svg></button>
+    </header>
+    <div id="reading-viewport" class="reading-viewport" tabindex="0" aria-label="书籍正文"><article id="reading-flow" class="reading-flow"></article></div>
+    <div class="reader-position"><span id="position-label"></span><progress id="read-progress" max="100" value="0" aria-label="全书阅读进度"></progress><span id="percent-label"></span></div>
+    <footer class="reader-toolbar" aria-label="阅读工具">
+      <button type="button" id="prev-page" class="tool-button" aria-label="上一页"><svg><use href="#i-back"/></svg><span>上页</span></button>
+      <button type="button" class="tool-button" data-open="contents"><svg><use href="#i-list"/></svg><span>目录</span></button>
+      <button type="button" class="tool-button together" data-open="companion"><svg><use href="#i-pair"/></svg><span>共读</span></button>
+      <button type="button" id="next-page" class="tool-button" aria-label="下一页"><svg><use href="#i-next"/></svg><span>下页</span></button>
+    </footer>
+  </main>
+
+  <dialog id="drawer" class="drawer" aria-labelledby="drawer-title">
+    <div class="drawer-shell">
+      <header class="drawer-header"><h2 id="drawer-title"></h2><button type="button" class="icon" id="close-drawer" aria-label="关闭面板"><svg><use href="#i-close"/></svg></button></header>
+      <div class="drawer-body">
+        <section id="panel-settings" hidden>
+          <button class="upload-row" id="settings-upload" type="button"><span class="upload-icon"><svg><use href="#i-upload"/></svg></span><span><strong>上传书籍</strong><small>TXT · Word · PDF · EPUB</small></span><svg class="chevron"><use href="#i-next"/></svg></button>
+          <p class="inline-note" id="settings-import-status" aria-live="polite"></p>
+          <fieldset><legend>界面风格</legend><div class="themes" id="theme-options">
+            <button type="button" data-theme-choice="mist" aria-pressed="true"><i></i>雾蓝</button>
+            <button type="button" data-theme-choice="peach" aria-pressed="false"><i></i>浅杏</button>
+            <button type="button" data-theme-choice="lilac" aria-pressed="false"><i></i>雾紫</button>
+            <button type="button" data-theme-choice="cream" aria-pressed="false"><i></i>奶油</button>
+          </div></fieldset>
+          <fieldset><legend>翻阅设置</legend><div class="segments" id="mode-options">
+            <button type="button" data-mode="horizontal" aria-pressed="true">点击左右翻页</button>
+            <button type="button" data-mode="vertical" aria-pressed="false">点击上下滑页</button>
+          </div><p class="inline-note" id="mode-hint"></p></fieldset>
+          <fieldset><legend>阅读字号</legend><div class="size-control"><button type="button" id="size-down" aria-label="缩小阅读字号">−</button><output id="font-size"></output><button type="button" id="size-up" aria-label="放大阅读字号">+</button></div></fieldset>
+        </section>
+        <section id="panel-contents" hidden>
+          <div class="segments contents-tabs" role="group" aria-label="目录和书签"><button type="button" data-list="chapters" aria-pressed="true">章节</button><button type="button" data-list="bookmarks" aria-pressed="false">书签</button></div>
+          <ol id="contents-list" class="contents-list"></ol>
+        </section>
+        <section id="panel-companion" hidden>
+          <div class="companion-header">
+            <div class="partner-line"><div id="partner-avatars" class="partner-avatars"></div><div><strong id="partner-names"></strong><span id="companion-place"></span></div></div>
+            <details class="companion-context"><summary>发送给模型的内容</summary><p>仅发送已读章节（最多5万字）、当前章节完整内容，以及本书共读消息记录给模型进行了解。</p></details>
+            <p class="inline-note" id="companion-scan-note" hidden>这一章只有原稿图片。可以把你想讨论的文字写在留言里。</p>
+          </div>
+          <div id="companion-messages" class="companion-messages" role="log" aria-label="共读留言" tabindex="0">
+            <p id="companion-empty" class="inline-note">发出留言后等 30 秒。继续发送会重新计时，Char 会一起回复。</p>
+          </div>
+          <div class="companion-footer">
+            <div class="companion-state-row" id="companion-state-row" hidden>
+              <span id="partner-state" role="status"></span><span id="companion-countdown" hidden></span>
+              <button type="button" class="text-button" id="retry-companion" hidden>重试</button>
+              <button type="button" class="text-button" id="cancel-companion" hidden>停止等待</button>
+            </div>
+            <p id="companion-error" class="inline-note error" role="alert"></p>
+            <form id="companion-form"><label for="companion-input" class="sr-only">共读留言</label><textarea id="companion-input" rows="2" maxlength="1000" placeholder="说说你读到这里的感想…" required></textarea><button id="send-companion" type="submit" class="primary-button" disabled><svg aria-hidden="true"><use href="#i-send"/></svg>发送</button></form>
+          </div>
+        </section>
+        <section id="panel-book" hidden>
+          <form id="book-form"><label for="edit-book-title">书名</label><input id="edit-book-title" maxlength="150" required><label for="edit-book-author">作者</label><input id="edit-book-author" maxlength="100"><p id="book-warnings" class="inline-note"></p><button type="submit" class="primary-button">保存</button></form>
+          <button type="button" id="delete-book" class="text-button danger">移除书籍</button>
+        </section>
+        <section id="panel-delete" hidden>
+          <p class="delete-title" id="delete-title"></p>
+          <p class="inline-note">本书的阅读进度、书签和共读留言也会一并删除。</p>
+          <div class="delete-actions"><button type="button" id="cancel-delete" class="text-button">取消</button><button type="button" id="confirm-delete" class="primary-button danger-button">确认删除</button></div>
+        </section>
+        <p id="drawer-status" class="inline-note" role="status" hidden></p>
+      </div>
+    </div>
+  </dialog>
+  <input id="file-picker" type="file" accept=".txt,.doc,.docx,.pdf,.epub" multiple hidden>
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  <div id="startup-error" class="startup-error" role="alert" hidden></div>
+</body>
+</html>

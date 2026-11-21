@@ -892,28 +892,6 @@ ${desc}
     return baseContent.replace('最新消息（请完整阅读并回复，可能包含多条）:\n用户: __PHOTO_CARD_PLACEHOLDER__', '最新消息（描述型照片场景）:\n' + photoBlock);
 },
 
-// 构建一起看书发送内容：系统核心指令+世界书+好友角色卡+用户人设+聊天内容+微信规范+一起看书功能介绍
-buildReadTogetherSendContent: function(friendId) {
-    const baseContent = wechatPrompts.buildWechatSendContent(friendId, '__READ_TOGETHER__');
-    if (!baseContent) return null;
-    const readBlock = `【一起看书功能·当前场景】
-用户打开了与好友的「一起看书」阅读书架，需要你以好友的身份推荐适合两人一起阅读的电子书籍。
-
-请根据好友角色卡、用户人设、世界书设定以及双方聊天内容，搜索并推荐 4-8 本真实存在的书籍。书籍需适合好友与用户共同阅读，可结合两人兴趣、关系、职业、生活场景。
-
-输出格式：仅输出一个 JSON 数组，不要包含任何其他文字或 markdown 标记。每本书一个对象，格式如下：
-[
-  {"title":"书名（必须是真实存在的书）","cover":"书籍封面图片URL（可使用 https://covers.openlibrary.org 等公开资源，若无法获取可留空）","review":"好友视角的读后感，不超过450字。需结合好友的工作、生活、与用户的关系，写出个人化感受。例如：好友看了《遇见你之前》，他羡慕男主最终遇见善良有趣的女主并坚守尊严，若是自己也会这样选择，无法忍受失去尊严成为用户的拖累。"},
-  ...
-]
-
-要求：
-1. title 必填，必须是真实出版过的书籍
-2. cover 选填，留空时系统会使用默认封面
-3. review 必填，以好友第一人称撰写，450字以内，要有个人情感与对用户/生活的联系`;
-    return baseContent.replace('最新消息（请完整阅读并回复，可能包含多条）:\n用户: __READ_TOGETHER__', '最新消息（一起看书场景）:\n' + readBlock);
-},
-
 // 构建转账收款/拒收发送内容：引导好友根据角色卡决定收款或拒收，并表达情绪
 buildTransferReceiveSendContent: function(friendId, amount) {
     const baseContent = wechatPrompts.buildWechatSendContent(friendId, '__TRANSFER_PLACEHOLDER__');
